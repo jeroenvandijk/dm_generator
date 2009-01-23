@@ -1,0 +1,15 @@
+<% number_of_entities = 5 -%>
+<% (1..number_of_entities).each do |id| -%>
+<%= "#{file_name}_#{id}" %>:
+<% for attribute in attributes -%>
+  <%= attribute.name %>: <%= attribute.default %>
+<% end -%>
+<% belongs_to_association_names.each_with_index do |parent, index| -%>
+  <%= "#{parent}: #{parent}_#{id}" %>
+<% end -%>
+<% child_ids = (((id -1) * number_of_entities + 1)..(id * number_of_entities + number_of_entities)).to_a -%>
+<% collection_association_names.each do |child| -%>
+  <%= child + ": " + child_ids.map{|i| "#{child.singularize}_#{i}" }.join(", ") %>
+<% end -%>
+
+<% end -%>

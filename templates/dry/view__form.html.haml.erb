@@ -1,0 +1,9 @@
+= error_messages_for :<%= singular_name %>
+
+- form_for <%= form_for_args %> do |f|
+  <%- for attribute in attributes -%>
+  %p
+    = f.label :<%= attribute.name %>
+    = f.<%= attribute.field_type %> :<%= attribute.name %>
+  <% end -%>
+  %p= f.submit translate_save(:<%= singular_name %>)

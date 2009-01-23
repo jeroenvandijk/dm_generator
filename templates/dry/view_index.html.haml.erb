@@ -1,0 +1,5 @@
+%h1= translate_for "<%= singular_name %>.index.title"
+
+= render :partial => '<%= singular_name %>', :collection => @<%= plural_name %>
+
+= link_to translate_for("<%= singular_name %>.index.link_to_new"), <%= path_for(:new) %>

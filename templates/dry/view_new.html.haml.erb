@@ -1,0 +1,5 @@
+%h1= translate_for "<%= singular_name %>.new.title"
+
+= render :partial => "form", :locals => {:<%= singular_name %> => @<%= singular_name %>}
+
+= link_to translate_for("<%= singular_name %>.new.link_to_index"), <%= path_for(:index) %>

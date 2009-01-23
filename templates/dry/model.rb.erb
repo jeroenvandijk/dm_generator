@@ -1,0 +1,46 @@
+class <%= class_name %> < ActiveRecord::Base
+	## ASSOCIATIONS
+<% supported_associations.each do |assoc_type| -%>
+<% eval("#{assoc_type}_associations").each do |assoc_name, properties| -%>
+	<%= association_model_string(assoc_name, properties) %>
+<% end %>
+<% end %>
+	## RESTRICTIONS
+	attr_accessible <%= attribute_symbols.join(",\n" + "\t" * 9) %> 
+
+	## CALLBACKS
+
+	## DELEGATES
+
+	## ACCESSORS
+
+	## NAMED_SCOPES
+
+	## PRESENCE VALIDATIONS
+	validates_presence_of <%= (attribute_symbols - boolean_attribute_symbols).join(",\n" + "\t" * 12) %>
+
+<% boolean_attribute_names.each do |attr| -%>
+	validates_inclusion_of <%= attr %>, in => [true, false] %>
+<% end %>
+
+	## ASSOCIATED VALIDATIONS
+	<% unless association_names.empty? %>
+	validates_associated <%= association_names.join(",\n" + "\t" * 12) %>
+	<% end %>
+
+	## FORMAT VALIDATIONS
+	with_options :allow_nil => true, :allow_blank => true do |w|
+		# TODO add formatting validations
+	end
+	
+	## VIRTUAL ATTRIBUTES
+	
+	## NORMAL METHODS
+	def self.find_by_params(params = {})
+		scope = scoped({})
+<% all_field_names.each do |field| -%>
+		scope = scope.scoped :conditions => { <%= field %> => params[<%= field %>] } if params[<%= field %>]
+<% end %>
+		scope.find(:all) ## TODO replace this with a proper search generic find code here
+	end
+end
