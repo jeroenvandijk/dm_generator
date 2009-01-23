@@ -1,7 +1,0 @@
-class <%= controller_class_name %>Controller < ApplicationController
-  make_resourceful do
-    actions :all
-
-		<%= "belongs_to #{parent_symbols.join(", ")}" unless parent_symbols.empty?  %>
-  end
-end
