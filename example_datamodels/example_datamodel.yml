@@ -15,7 +15,7 @@ models:
   manufacturer:
     associations:
       product:
-        type: belongs_to
+        type: has_one
 
     attributes:
       name: string

@@ -46,7 +46,7 @@ class DmModelGenerator < DM::ExtendedNamedBase
 
       # Tests
       m.template(find_template_for('unit_test.rb'),       File.join('test/unit', class_path, "#{file_name}_test.rb"))
-      m.template(find_template_for('fixtures.yml'),       File.join('test/fixtures', "#{table_name}.yml"))
+      m.template(find_template_for('fixtures.yml'),       File.join('test/fixtures', "#{table_name}.yml"), :assigns => { :number_of_entities => 5 })
     end
   end
 

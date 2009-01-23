@@ -190,7 +190,8 @@ namespace :dm do
 	# Attributes are extracted by inspecting the class. 
 	# It uses the reasonable convention that an corresponding database table exist for the model.
 	def extract_attributes(klass)
-		raw_model_attributes =  klass.inspect.scan(/\((.*)\)/)[0][0].gsub(", ", "\n")
+		model_attribute_match = klass.inspect.scan(/\((.*)\)/).flatten[0]
+		raw_model_attributes =  model_attribute_match.gsub(", ", "\n")
 		YAML::load(raw_model_attributes)
 	end
 end
