@@ -191,7 +191,12 @@ namespace :dm do
 	# It uses the reasonable convention that an corresponding database table exist for the model.
 	def extract_attributes(klass)
 		model_attribute_match = klass.inspect.scan(/\((.*)\)/).flatten[0]
-		raw_model_attributes =  model_attribute_match.gsub(", ", "\n")
-		YAML::load(raw_model_attributes)
+		
+		if model_attribute_match
+			raw_model_attributes =  model_attribute_match.gsub(", ", "\n")
+			YAML::load(raw_model_attributes)
+		else
+			{}
+		end
 	end
 end

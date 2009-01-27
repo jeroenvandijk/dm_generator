@@ -153,7 +153,7 @@ module DM
 		end
 		
 		def attribute_symbols
-			@attribute_symbols ||= attribute_names.map{|x| x.to_sym }
+			@attribute_symbols ||= attribute_names.map{|x| ":x{x}" }
 		end
 	
 		# Adds association and returns whether it added an association
