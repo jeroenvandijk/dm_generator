@@ -1,0 +1,34 @@
+namespaces:
+  admin:
+    namespaces:
+      sub_admin:
+        models:      
+          product:
+            # namespace: admin
+            associations: 
+              manufacturer:
+                type: belongs_to
+              categories:
+                type: has_and_belongs_to_many
+
+            attributes: 
+              name: string
+              price: decimal
+
+models: 
+  manufacturer:
+    associations:
+      product:
+        type: has_one
+
+    attributes:
+      name: string
+      
+
+  category:
+    associations: 
+      products:
+        type: has_and_belongs_to_many
+        
+    attributes: 
+      name: string
