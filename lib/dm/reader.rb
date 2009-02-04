@@ -25,6 +25,8 @@ module DM
                   :controller_file_name,
                   :model_hash,
                   :model_name,
+									:singular_name,
+									:plural_name,
                   :table_name,
                   :habtm_associations,
                   :attributes,
@@ -35,7 +37,8 @@ module DM
                   
                       
       def initialize(model_name, model_hash, options = {})
-        @model_name = model_name
+        @singular_name = @model_name = model_name.singularize
+				plural_name = @singular_name.pluralize
         @model_hash = model_hash
         
         @namespaces = options[:namespaces] || []
