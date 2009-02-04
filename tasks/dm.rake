@@ -1,4 +1,6 @@
-require "yaml" # For exporting and importing of the datamodel
+require "yaml" # For exporting and importing of the datamodel\
+require 'find' # For finding namespaces
+
 
 namespace :dm do
 	desc "Imports a Yaml data model."
@@ -10,11 +12,20 @@ namespace :dm do
 	task :export => :environment do
 				
 		data_model = {}
-		for_all_models do |model_class, model_name|
-			data_model[model_name] = {	"associations" => extract_associations(model_class),
-																	"attributes" => extract_attributes(model_class) }
+		for_all_models do |model_class, model_name, namespaces|
+			
+			# Go to the right place in the hash
+			base = namespaces.inject(data_model) do |base, namespace| 
+				base["namespaces"] ||= {}
+				base["namespaces"][namespace] ||= {}
+			end
+			
+			# Add the model
+			base["models"] = { model_name => {	"associations" => extract_associations(model_class),
+																					"attributes" => extract_attributes(model_class) } }
 		end
-		puts({"models" => data_model}.to_yaml)
+
+		puts(data_model.to_yaml)
 	end
 
 	desc "Destroy current data model (including all generated migrations, views and controllers)"
@@ -163,15 +174,52 @@ namespace :dm do
 		YAML::load_file(file)
 	end
 	
+	
 	def for_all_models 
 		model_files = Dir.glob("#{RAILS_ROOT}/app/models/*.rb")
 		model_files.each do |filename|
 			model_name = File.basename(filename, ".rb")
 			model_class = eval(model_name.classify) #TODO rescue when model does not exist
 			if model_class.superclass == ActiveRecord::Base
-					yield(model_class, model_name)
+					# Extract namespaces
+					namespaces = find_namespaces_for(model_name) || []
+					yield(model_class, model_name, namespaces)
 			end
 		end
+	end
+	
+	# Find namespaces for model name, only gives the first found namespaces
+	def find_namespaces_for(model_name, options = {})
+		# namespaces are visible in controller directory
+		options[:base_path] ||= "#{RAILS_ROOT}/app/controllers/"
+		dir = options[:dir].to_s
+		path = options[:base_path] + dir
+		
+		controller_files = Dir.glob("#{path}*.rb")
+
+		if !controller_files.select {|f| f =~ /#{model_name.pluralize}_controller/}.empty?
+			# raise controller_files.inspect + " \n\n path " + path
+			return dir.split("/") # directory structure
+		else
+
+
+			Find.find(*Dir.glob(path + "*")) do |file|
+				if path == file
+					Find.prune       # Don't look any further into this directory.
+					
+				elsif FileTest.directory?(file)
+					namespaces = find_namespaces_for(model_name, 
+																				options.merge(:dir => dir + File.basename(file) + "/") ) 
+
+					return namespaces if namespaces #we found something
+				end
+
+				next #directory
+			end
+		end
+		
+		# Controller not found so assume we should add no namespace
+		return nil
 	end
 	
 	def extract_associations(klass)
