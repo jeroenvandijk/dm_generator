@@ -1,6 +1,22 @@
 require "yaml" # For exporting and importing of the datamodel\
 require 'find' # For finding namespaces
 
+# We want the export YAML file to be sort on its keys, so it is easier to find stuff
+class Hash
+  # Replacing the to_yaml function so it'll serialize hashes sorted (by their keys)
+  #
+  # Original function is in /usr/lib/ruby/1.8/yaml/rubytypes.rb
+  def to_yaml( opts = {} )
+    YAML::quick_emit( object_id, opts ) do |out|
+      out.map( taguri, to_yaml_style ) do |map|
+        sort.each do |k, v|   # <-- here's my addition (the 'sort')
+          map.add( k, v )
+        end
+      end
+    end
+  end
+end
+
 
 namespace :dm do
 	desc "Imports a Yaml data model."
@@ -21,8 +37,9 @@ namespace :dm do
 			end
 			
 			# Add the model
-			base["models"] = { model_name => {	"associations" => extract_associations(model_class),
-																					"attributes" => extract_attributes(model_class) } }
+			base["models"] ||= {} 
+			base["models"].merge!( model_name => {	"associations" => extract_associations(model_class),
+																							"attributes" => extract_attributes(model_class) } )
 		end
 
 		puts(data_model.to_yaml)
@@ -179,7 +196,15 @@ namespace :dm do
 		model_files = Dir.glob("#{RAILS_ROOT}/app/models/*.rb")
 		model_files.each do |filename|
 			model_name = File.basename(filename, ".rb")
-			model_class = eval(model_name.classify) #TODO rescue when model does not exist
+			begin
+				model_class = eval(model_name.classify) #TODO rescue when model does not exist
+
+			rescue StandardError => boom
+				print "Errors in filename: #{filename} \n" + boom
+				
+			end
+				
+
 			if model_class.superclass == ActiveRecord::Base
 					# Extract namespaces
 					namespaces = find_namespaces_for(model_name) || []
