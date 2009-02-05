@@ -271,7 +271,7 @@ namespace :dm do
 			raw_model_attributes =  model_attribute_match.gsub(", ", "\n")
 			
 			attributes = YAML::load(raw_model_attributes)
-			attributes.keys.sort.inject([]) { |result, key| { "name" => key, "type" => attributes[key] } }
+			attributes.keys.sort.inject([]) { |result, key| result << { "name" => key, "type" => attributes[key] } }
 		else
 			[]
 		end
