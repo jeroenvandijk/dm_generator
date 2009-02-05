@@ -124,8 +124,8 @@ module DM
       
         def extract_attributes
           @attributes = []
-          model_hash["attributes"].collect do |args|
-   				  @attributes << Rails::Generator::GeneratedAttribute.new(*args)
+          model_hash["attributes"].collect do |attribute|
+						@attributes << DM::ExtendedGeneratedAttribute.new(attribute["name"], attribute["type"])
    				end
         end
       

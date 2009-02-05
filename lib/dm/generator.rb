@@ -17,6 +17,10 @@ module DM
       options[:supported_association_options] = %w(through dependent)
       options[:parent_associations] = %w(belongs_to has_and_belongs_to_many)
 
+			# Load hash with format_mapping
+			DM::ExtendedGeneratedAttribute.init_format_mapping(template_path("format_mapping.yml"))
+
+			# Load hash with models
       model_hash = YAML::load_file(filename)
       @models = DM::Reader.new(model_hash, options).models
       
