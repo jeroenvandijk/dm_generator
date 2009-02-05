@@ -262,14 +262,18 @@ namespace :dm do
 	
 	# Attributes are extracted by inspecting the class. 
 	# It uses the reasonable convention that an corresponding database table exist for the model.
+	# Attributes are extracted by inspecting the class. 
+	# It uses the reasonable convention that an corresponding database table exist for the model.
 	def extract_attributes(klass)
 		model_attribute_match = klass.inspect.scan(/\((.*)\)/).flatten[0]
 		
 		if model_attribute_match
 			raw_model_attributes =  model_attribute_match.gsub(", ", "\n")
-			YAML::load(raw_model_attributes)
+			
+			attributes = YAML::load(raw_model_attributes)
+			attributes.keys.sort.inject([]) { |result, key| { "name" => key, "type" => attributes[key] } }
 		else
-			{}
+			[]
 		end
 	end
 end
