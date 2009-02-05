@@ -201,7 +201,7 @@ namespace :dm do
 
 			rescue StandardError => boom
 				print "Errors in filename: #{filename} \n" + boom
-				
+				next
 			end
 				
 
