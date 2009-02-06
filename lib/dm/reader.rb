@@ -100,11 +100,16 @@ module DM
 					end
 	
           # Attributes
+					@attributes_for.each_pair do |template, attributes| 
+						@member_hash["attributes_for_#{template}"] = attributes
+						@member_hash["attribute_names_for_#{template}"] = attributes.map(&:name)
+					end
+					
           @member_hash[:attribute_names] = attributes.map(&:name)
           @member_hash[:boolean_attributes] = attributes.reject{|x| x.type != "boolean" }
-          @member_hash[:boolean_attribute_names] = @member_hash[:boolean_attributes].map(&:name)
           @member_hash[:string_attributes] = attributes.reject{|x| not %w(string text).include? x.type }
-          @member_hash[:string_attribute_names] = @member_hash[:string_attributes].map(&:name)
+
+					[:boolean_attributes, :string_attributes].each {|k| @member_hash["#{k.to_s[0..-2]}_names"] = @member_hash[:boolean_attributes].map(&:name) }
 
           # Associations
           supported_associations.each do |type|
@@ -116,8 +121,6 @@ module DM
           # Add the names of parent associations
           @member_hash[:parent_names] = parent_associations.inject([]) { |names, type| @member_hash["#{type}_association_names"] }
 
-					# Add special member 
-					@attributes_for.each_pair {|template, attributes| @member_hash["attributes_for_#{template}"] = attributes }
 
           # All names should be available as symbols as well
           @member_hash.each_pair do |key, values|
@@ -128,9 +131,8 @@ module DM
           end
         # end
         @member_hash
-
-				# raise @member_hash.keys.to_yaml
       end
+
       
       # form_for should support namespaces and nested resources
   		def form_for_args
