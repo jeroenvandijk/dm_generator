@@ -68,6 +68,9 @@ module DM
         @singular_name = @model_name = model_name.singularize
 				@plural_name = @singular_name.pluralize
         @model_hash = model_hash
+
+				raise "Model #{model_name} should have attributes or associations can be left empty in #{yaml_file}" unless model_hash
+
 				model_hash[:associations] ||= {}
 				model_hash[:attributes] ||= {}
         
