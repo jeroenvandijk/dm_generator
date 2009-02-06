@@ -27,7 +27,7 @@ module DM
 			attr_accessor :format_mapping, :file
 
 			def init_format_mapping(file)
-				@format_mapping = HashWithIndifferentAccess.new(YAML::load_file(file))
+				@format_mapping = HashWithIndifferentAccess.new(YAML::load_file(file)).symbolize_keys!
 				@file = file
 				top_level_symbols = [:examples, :presentations, :formats]
 
@@ -40,14 +40,20 @@ module DM
 
 		end
 		
-		attr_accessor :format
+		attr_accessor :format, :templates
 		
-		def initialize(name, format)
+		def initialize(*args)
+			options = args.extract_options!
+			
+			name = args.first 
+			format = args.second
+			
 			super(name, extract_type(format))
+			@templates = options[:templates] || []
 		end
 		
 		def default
-			@default ||= format_mapping[:examples][format] || super.default
+			@default ||= format_mapping[:examples][format] || super
 		end
 	
 		# Presentation gives us a method to automatically present the attribute in the way we want it
@@ -75,8 +81,8 @@ module DM
 				presentation.gsub!("{{attribute}}", name)
 				presentation.gsub!("{{object}}", object)
 				presentation.gsub!("{{_self}}", "#{object}.#{name}")
-				options.each_pair { |key, value| presentation.gsub!("{{#{key}}}", value ) }
 
+				options.each_pair { |key, value| presentation.gsub!("{{#{key}}}", value ) }
 				presentation
 			end
 		end

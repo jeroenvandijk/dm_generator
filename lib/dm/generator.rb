@@ -10,22 +10,22 @@ module DM
 	  def initialize(runtime_args, runtime_options = {})
 			super
 
-      filename = @name
+
 
       options = {} 
       options[:supported_associations] = %w(belongs_to has_many has_and_belongs_to_many has_one)
       options[:supported_association_options] = %w(through dependent)
       options[:parent_associations] = %w(belongs_to has_and_belongs_to_many)
+			options[:view_templates] = %w(index show new edit _form _partial)
 
 			# Load hash with format_mapping
 			DM::ExtendedGeneratedAttribute.init_format_mapping(template_path("format_mapping.yml"))
 
-			# Load hash with models
-      model_hash = YAML::load_file(filename)
-      @models = DM::Reader.new(model_hash, options).models
+      filename = @name
+      @models = DM::Reader.new(filename, options).models
       
       # Set other variables
-      @scaffold_views = %w(index show new edit _form _partial)
+      @scaffold_views = options[:view_templates]
 		end
 			
 	  protected

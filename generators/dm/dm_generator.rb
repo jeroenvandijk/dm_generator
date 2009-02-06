@@ -7,6 +7,8 @@ class DmGenerator < DM::ExtendedNamedBase
         # Set the current model so we can access the members from other places
         self.current_model = m
         
+				# raise m.to_h.inspect.gsub(',', "\n") if m.model_name == "product"
+
         # Check for class naming collisions.
         r.class_collisions(m.controller_class_path, "#{m.controller_class_name}Controller") if is_requested? :controllers
         r.class_collisions(m.controller_class_path, "#{m.controller_class_name}Helper")     if is_requested? :helpers
