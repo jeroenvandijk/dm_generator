@@ -4,11 +4,11 @@ module DM
   class Reader 
     attr_accessor :models_hash,
                   :options,
-									:file
+									:yaml_file
 
-    def initialize(file, options = {})
-      @models_hash = HashWithIndifferentAccess.new(YAML::load_file(file)).symbolize_keys!
-      @options = options.merge(:file => file)
+    def initialize(yaml_file, options = {})
+      @models_hash = HashWithIndifferentAccess.new(YAML::load_file(yaml_file)).symbolize_keys!
+      @options = options.merge(:yaml_file => yaml_file)
     end
 
     def models
@@ -24,14 +24,15 @@ module DM
 				attr_reader :supported_associations, 
 										:parent_associations,
 										:supported_association_options,
-										:view_templates
+										:view_templates,
+										:yaml_file
 				
 				def add_options(options = {})
 	        @supported_associations = options[:supported_associations] || []
 	        @parent_associations = options[:parent_associations] || []
 	        @supported_association_options = options[:supported_association_options] || []
 					@view_templates = options[:view_templates] || []
-					@file = options[:file]
+					@yaml_file = options[:yaml_file]
 				end
 			end
 			
@@ -40,6 +41,7 @@ module DM
 									:supported_associations, 
 									:supported_association_options,
 									:view_templates,
+									:yaml_file,
 							:to => :parent
 			
 			def parent
@@ -173,14 +175,16 @@ module DM
 				def extract_options(field)
 					field_options = HashWithIndifferentAccess.new
 					if field.size == 2
+						raise "#{field.inspect} in model #{model_name} in #{yaml_file} is not a Hash" unless field.is_a?(Hash)
+						
 						if field[:options] && field[:options].is_a?(Hash)
 							field_options = yield(field.delete(:options))
 						else
-							raise "#{field.inspect} in model #{model_name} in #{file} has two elements, but has no options hash"	
+							raise "#{field.inspect} in model #{model_name} in #{yaml_file} has two elements, but has no options hash"	
 						end
 
 					elsif field.size != 1
-						raise "wrong number of fields for field #{field.inspect} in model #{model_name} in #{file}. Should have 1 name, type key-value pair, and an options hash is.. yup optional"
+						raise "wrong number of fields for field #{field.inspect} in model #{model_name} in #{yaml_file}. Should have 1 name, type key-value pair, and an options hash is.. yup optional"
 					end
 					[field.to_a, field_options].flatten
 				end
