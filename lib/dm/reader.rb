@@ -7,7 +7,11 @@ module DM
 									:yaml_file
 
     def initialize(yaml_file, options = {})
-      @models_hash = HashWithIndifferentAccess.new(YAML::load_file(yaml_file)).symbolize_keys!
+      begin
+				@models_hash = HashWithIndifferentAccess.new(YAML::load_file(yaml_file)).symbolize_keys!
+			rescue StandardError => e
+				raise "Models yaml file could not be loaded: #{e}"
+			end
       @options = options.merge(:yaml_file => yaml_file)
 			Model.add_options(options)
     end
@@ -25,7 +29,8 @@ module DM
 										:parent_associations,
 										:supported_association_options,
 										:view_templates,
-										:yaml_file
+										:yaml_file,
+										:collection_associations
 				
 				def add_options(options = {})
 	        @supported_associations = options[:supported_associations] || []
@@ -33,6 +38,7 @@ module DM
 	        @supported_association_options = options[:supported_association_options] || []
 					@view_templates = options[:view_templates] || []
 					@yaml_file = options[:yaml_file]
+					@collection_associations = %w(has_many has_and_belongs_to_many)
 				end
 			end
 			
@@ -42,6 +48,7 @@ module DM
 									:supported_association_options,
 									:view_templates,
 									:yaml_file,
+									:collection_associations,
 							:to => :parent
 			
 			def parent
@@ -91,7 +98,7 @@ module DM
         extract_associations
       end
     
-      # TODO put all necessary attributes in the h so that it can be assigned in the templates.
+      # TODO put all necessary attributes in the hash so that it can be assigned in the templates.
       def to_h
         # unless @member_hash
           @member_hash = HashWithIndifferentAccess.new
@@ -117,7 +124,7 @@ module DM
           # Associations
           supported_associations.each do |type|
             @member_hash["#{type}_associations"] = @associations[type]
-            @member_hash["#{type}_associations_with_options"] = @associations[type].map{|x| association_with_options(x) }
+            @member_hash["#{type}_associations_with_options"] = @associations[type].map{|x| association_with_options(x, :is_plural => collection_associations.include?(type.to_s)) }
             @member_hash["#{type}_association_names"] = @associations[type].map{|x| x[:name] }
           end
 
@@ -153,8 +160,8 @@ module DM
           self.class.public_instance_methods - (Object.instance_methods + %w(to_h model_hash path_for my_methods))
         end
         
-        def association_with_options(association)
-          assoc_string = ":" + association[:name]
+        def association_with_options(association, options = {})
+          assoc_string = ":" + (options[:is_plural] ? association[:name].pluralize : association[:name] )
           supported_association_options.each do |option|
             assoc_string += ", #{option} => :#{association[option]}" if association[option]
           end
@@ -226,8 +233,6 @@ module DM
 					@habtm_associations = @associations[:has_and_belongs_to_many] ? 
                                   @associations[:has_and_belongs_to_many].map{|x| x[:name]} :
                                   []
-
-					# raise @associations.inspec
 				end
     end
 

@@ -60,7 +60,7 @@ module DM
              end
       opt.on("--except=", String,
              "Don't generate these template types: " + abbreviations) do |v| 
-               options[:files_to_ignore] = v
+               options[:files_to_ignore] = v.split('').map{|x| x.to_sym }
              end
     end
 

@@ -29,14 +29,19 @@ module DM
 			def init_format_mapping(file)
 				@format_mapping = HashWithIndifferentAccess.new(YAML::load_file(file)).symbolize_keys!
 				@file = file
-				top_level_symbols = [:examples, :presentations, :formats]
 
-				# raise format_mapping.inspect
-				unless top_level_symbols.inject(true) {|included, sym| included && format_mapping.has_key?(sym)} 
-					raise "The format mapping hash in '#{file}' is missing the top level keys: #{(top_level_symbols - format_mapping.keys).to_sentence}."
-				end
+				validate_mapping
 			end
 			
+			def validate_mapping
+				obligatory_fields = [:native_type,:examples, :display]
+														
+				format_mapping.each_key do |format|
+					obligatory_fields.each do |field|
+						raise "Validation of file '#{file}' failed: field '#{field}' is not defined for format '#{format}'" unless format_mapping[format][field]
+					end
+				end
+			end
 
 		end
 		
@@ -53,12 +58,15 @@ module DM
 		end
 		
 		def default
-			@default ||= format_mapping[:examples][format] || super
+			@default ||= mapping(:examples, :valid) || super
 		end
 	
-		# Presentation gives us a method to automatically present the attribute in the way we want it
-		def presentation(*args)
-			# extract arguments
+		# display returns the value of the attribute in the way it is defined in the format mapping file
+		# Expects the first argument to be the name of the template variable, e.g. @user or user
+		# Second argument (optional) is the symbol for the template in which we want the attribute to display
+		# Arbitrary parsing can be done in through the options hash, the {{key}} will be replaced with the value
+		#   - 
+		def display(*args)
 			options = args.extract_options!
 			object = args.first
 			raise "The first argument should not be nil and should contain the name of object instance belonging to the attribute (attribute name: #{name})" unless object
@@ -67,27 +75,33 @@ module DM
 			if native?
 				"#{object}.#{name}"
 			else
-				# Find the presentation settings from the format_mapping hash
-				raise "No presentation mapping for '#{template}' template on object '#{object}'" unless format_mapping[:presentations][template]
-				
-				presentation = format_mapping[:presentations][template][format]
-				unless presentation
-					puts "No presentation mapping for '#{format}' format on object '#{object}' for template '#{template}', default is used." 
-					presentation = format_mapping[:presentations][:default][format]
-					raise "No presentation mapping for for '#{format}' format on object for :default template'#{object}'" unless presentation
+				# Find the display settings from the format_mapping hash
+				display = mapping(:display, template)
+				unless display
+					puts mapping_missing_message_for(:display, template) + ", default is used"
+					display = mapping(:display, :default)
+					raise mapping_missing_message(:display) unless display
 				end
-
-				# Replace template variables with their values
-				presentation.gsub!("{{attribute}}", name)
-				presentation.gsub!("{{object}}", object)
-				presentation.gsub!("{{_self}}", "#{object}.#{name}")
-
-				options.each_pair { |key, value| presentation.gsub!("{{#{key}}}", value ) }
-				presentation
+				
+				parse_display_template(display, options.reverse_merge(:object => object))
 			end
 		end
-		
+
 		private
+		
+			def mapping(type, template = :default)
+				format_mapping[format] && format_mapping[format][type] && format_mapping[format][type][template]
+			end
+
+			def parse_display_template(display, options = {})
+				display.gsub!("{{attribute_name}}", name)
+
+				options.each_pair { |key, value| display.gsub!("{{#{key}}}", value ) }
+			end
+		
+			def mapping_missing_message_for(type, template)
+				"No :#{type} mapping for '#{format}' for :#{template} template in mapping file '#{file}'"
+			end
 
 			def native?
 				native_types.has_key? format
@@ -99,27 +113,13 @@ module DM
 				self.class
 			end
 
-
-			
-
-			
 			def extract_type(_format)
 				# Set format and make sure it is a symbol, this way we can use it later on 
 				@format = _format.to_sym
 
-				# Continue extracting the type using the member format 
-				# See if we can find a mapping of the format
-				type = format_mapping[:formats][format]
-				raise "The mapping for the format '#{format}: #{type}' is not a native database type" unless type || native?
-
-				# If we haven't found a mapping use the native type if it is one
-				unless type
-					if native?
-						type = _format
-					else
-						raise "The mapping for the format '#{format}' is not defined for #{self.class}."
-					end
-				end
+				type = _format if native?
+				type ||= format_mapping[@format][:native_type].try
+				raise "The native_type for format '#{format}' is not defined in #{file} and is also not a native rails type (#{native_types.to_sentence}) " unless type
 
 				type
 			end
