@@ -62,6 +62,11 @@ module DM
              "Don't generate these template types: " + abbreviations) do |v| 
                options[:files_to_ignore] = v.split('').map{|x| x.to_sym }
              end
+			
+			opt.on("--template_dir=", String,
+						 "Search for templates in the given directory first, then default") do |v|
+								options[:template_dir] = v
+							end
     end
 
 
@@ -90,8 +95,12 @@ module DM
 	    end  
 	  end
 
-    def template_path(filename = "")
-      File.join($DM_TEMPLATE_PATH, filename)
+		def template_dir
+			options[:template_dir]
+		end
+
+    def template_path(filename = "", dir = nil)
+			File.join($DM_TEMPLATE_PATH, dir || "default", filename)
     end
 		# Returns the path to the template file 
 		# and when a prefix is given also the name of the target filename 
@@ -100,10 +109,16 @@ module DM
 			prefix = options[:prefix] ? options[:prefix] + "_" : ""
 			type = options[:prefix]
 			extension = ".erb" # I don't think this will and should change, but here as a variable any way to make it flexible
-			path = template_path # the template_path can be overriden by subclasses
-			
+			path = template_path("", template_dir) # the template_path can be overriden by subclasses
 			# find files and raise errors when there is not exactly one matching file
 			files = Dir.glob("#{path}#{prefix}#{name}*#{extension}")
+			
+			# If there are no files found try it again for the default directory
+			if files.empty? && template_dir
+				files = Dir.glob("#{template_path}#{prefix}#{name}*#{extension}")
+			end
+			
+			
 			raise "Found more than one matching file in '#{path}' for '#{type}#{name}' template, candidates are: #{files.to_sentence}. Remove or rename one or more files." if files.size > 1
 			raise "Found no matching file in '#{path}' for '#{type}#{name}' template. The file should have the following format '#{prefix}#{name}#{extension}'." if files.empty?
 
