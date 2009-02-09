@@ -41,6 +41,7 @@ namespace :dm do
 			base["models"].merge!( model_name => {	"associations" => extract_associations(model_class),
 																							"attributes" => extract_attributes(model_class) } )
 		end
+		# raise data_model.inspect
 
 		puts(data_model.to_yaml)
 	end
@@ -248,14 +249,21 @@ namespace :dm do
 	end
 	
 	def extract_associations(klass)
-		associations = {}
+		associations = []
 		klass.reflect_on_all_associations.each do |assoc|
-			association = {"type" => assoc.macro.to_s}
+			association = {assoc.name.to_s => assoc.macro.to_s}
+			
 			unless assoc.options.empty?
-				association["through"] = assoc.options[:through].to_s if assoc.options[:through]
-				association["dependent"] = assoc.options[:dependent].to_s if assoc.options[:dependent]
+				# TODO revise the restriction below. I (Jeroenvandijk) think this is the only thing we are really interested. The rest gives superfluous clutter.
+				allowed_options = [:through, :dependent] 
+				options = {}
+				allowed_options.each do |option| 
+ 					options[option.to_s] = assoc.options[option].to_s if assoc.options[option]
+				end
+				association["options"] = options unless options.empty?
 			end
-			associations[assoc.name.to_s] = association
+			
+			associations << association
 		end
 		associations
 	end
@@ -266,12 +274,11 @@ namespace :dm do
 	# It uses the reasonable convention that an corresponding database table exist for the model.
 	def extract_attributes(klass)
 		model_attribute_match = klass.inspect.scan(/\((.*)\)/).flatten[0]
-		
+
 		if model_attribute_match
-			raw_model_attributes =  model_attribute_match.gsub(", ", "\n")
+			raw_model_attributes =  model_attribute_match.split(", ")
+			raw_model_attributes.inject([]) {|attributes, raw_attribute_pair| attributes << YAML::load(raw_attribute_pair) }
 			
-			attributes = YAML::load(raw_model_attributes)
-			attributes.keys.sort.inject([]) { |result, key| result << { "name" => key, "type" => attributes[key] } }
 		else
 			[]
 		end
