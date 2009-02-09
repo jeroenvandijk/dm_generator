@@ -118,7 +118,7 @@ module DM
 				@format = _format.to_sym
 
 				type = _format if native?
-				type ||= format_mapping[@format][:native_type].try
+				type ||= format_mapping[@format] && format_mapping[@format][:native_type]
 				raise "The native_type for format '#{format}' is not defined in #{file} and is also not a native rails type (#{native_types.to_sentence}) " unless type
 
 				type
