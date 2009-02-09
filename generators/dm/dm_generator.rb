@@ -63,27 +63,56 @@ class DmGenerator < DM::ExtendedNamedBase
                                                                       "#{m.table_name}.yml"), 
                                                              :assigns => m.to_h.merge( :number_of_entities => 5 )) if is_requested? :fixtures
           
+        
+			end
+			if is_requested? :migrations
+				models.each do |m|
         # Migrations
-        if is_requested? :migrations
-          r.template(find_template_for('migration.rb'), File.join('db/migrate', "create_#{m.table_name}.rb"), 
-            :assigns => m.to_h.merge( :migration_name => "Create#{m.table_name.camelize}")
-          )
-        
+				# TODO create the migrations without the timestamp hack
+
+					r.migration_template(find_template_for('migration.rb'), 'db/migrate', 
+            :assigns => m.to_h.merge( :migration_name => "Create#{m.table_name.camelize}"),
+						:migration_file_name => "create_#{m.table_name.pluralize}")
+
+					r.sleep(1) # TODO make this unnecessary
+
           m.habtm_associations.each do |habtm_assoc|
-        
             habtm_pair = [m.model_name, habtm_assoc.singularize].sort
             habtm_table_name = habtm_pair.map{|x| x.pluralize.underscore}.join('_')
             migration_file_name = "create_join_table_#{habtm_table_name}.rb"
           
-          
-            r.template(find_template_for('habtm_migration.rb'), File.join('db/migrate', migration_file_name),
-              :assigns => m.to_h.merge(
-               :migration_name => migration_file_name.camelize,
-               :habtm_pair => habtm_pair,
-               :habtm_table_name => habtm_table_name)
-            )
+						r.migration_template(find_template_for('migration.rb'), 'db/migrate', 
+	            :assigns => m.to_h.merge(
+								:migration_name => "Create#{m.table_name.camelize}",
+								:habtm_pair => habtm_pair,
+								:habtm_table_name => habtm_table_name),
+							:migration_file_name => "create_#{m.table_name.pluralize}")
+
+						r.sleep(1) # TODO make this unnecessary
           end
         end
+
+        #  # TODO create the migrations without the timestamp hack
+				#	if is_requested? :migrations
+        #   r.template(find_template_for('migration.rb'), File.join('db/migrate', "create_#{m.table_name}.rb"), 
+        #     :assigns => m.to_h.merge( :migration_name => "Create#{m.table_name.camelize}")
+        #   )
+        # 
+        #   m.habtm_associations.each do |habtm_assoc|
+        # 
+        #     habtm_pair = [m.model_name, habtm_assoc.singularize].sort
+        #     habtm_table_name = habtm_pair.map{|x| x.pluralize.underscore}.join('_')
+        #     migration_file_name = "create_join_table_#{habtm_table_name}.rb"
+        #   
+        #   
+        #     r.template(find_template_for('habtm_migration.rb'), File.join('db/migrate', migration_file_name),
+        #       :assigns => m.to_h.merge(
+        #        :migration_name => migration_file_name.camelize,
+        #        :habtm_pair => habtm_pair,
+        #        :habtm_table_name => habtm_table_name)
+        #     )
+        #   end
+        # end
       
       # 
       # # Generate routes
@@ -94,10 +123,5 @@ class DmGenerator < DM::ExtendedNamedBase
       # 
       end
     end
-  end
-  
-  # Copied from the rails core, unfortunately the migration_exists? in the manifest does not work as expected
-  def migration_exists?(file_name)
-    not Dir.glob("db/migrate/[0-9]*_*.rb").grep(/[0-9]+_#{file_name}.rb$/).empty?
   end
 end
