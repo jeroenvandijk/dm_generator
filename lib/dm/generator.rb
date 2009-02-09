@@ -72,9 +72,9 @@ module DM
 			usages.join("\n")
 	  end
 
-    def path_for(action, options = {})
-			object_instance = (options[:partial] ? "" : "@") + current_model.model_name
-      resource_name = (current_model.namespaces + [current_model.model_name]).join("_").downcase
+    def path_for(model_instance, action, options = {})
+			object_instance = (options[:partial] ? "" : "@") + model_instance.singular_name
+      resource_name = (model_instance.namespaces + [model_instance.singular_name]).join("_").downcase
 
 	    case action.to_sym
 	    when :show

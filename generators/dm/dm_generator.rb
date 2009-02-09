@@ -4,9 +4,6 @@ class DmGenerator < DM::ExtendedNamedBase
 	def manifest
     record do |r|
       models.each do |m|
-        # Set the current model so we can access the members from other places
-        self.current_model = m
-        
         # Check for class naming collisions.
         r.class_collisions(m.controller_class_path, "#{m.controller_class_name}Controller") if is_requested? :controllers
         r.class_collisions(m.controller_class_path, "#{m.controller_class_name}Helper")     if is_requested? :helpers

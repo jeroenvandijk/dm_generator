@@ -23,7 +23,7 @@ module DM
 
     # The nested Model class is responsible for extracting all information for each model
     class Model
-	
+		
 			class << self
 				attr_reader :supported_associations, 
 										:parent_associations,
@@ -70,10 +70,13 @@ module DM
 									:plural_name,
 									:singular_name,
                   :table_name
-                      
-      def initialize(model_name, model_hash, options = {})
-        @singular_name = @model_name = model_name.singularize
-				@plural_name = @singular_name.pluralize
+
+      # model_name is assumed to be singular since it defines
+			# the models (which are singular)
+      def initialize(model_name, model_hash, options = {}) #nodoc
+				@plural_name = model_name.pluralize
+        @singular_name = @model_name = model_name
+
         @model_hash = model_hash
 
 				raise "Model #{model_name} should have attributes or associations can be left empty in #{yaml_file}" unless model_hash
@@ -100,7 +103,7 @@ module DM
     
       # TODO put all necessary attributes in the hash so that it can be assigned in the templates.
       def to_h
-        # unless @member_hash
+        unless @member_hash
           @member_hash = HashWithIndifferentAccess.new
 
           # First add all instance methods to the hash, this should be done first 
@@ -131,7 +134,6 @@ module DM
           # Add the names of parent associations
           @member_hash[:parent_names] = parent_associations.inject([]) { |names, type| @member_hash["#{type}_association_names"] }
 
-
           # All names should be available as symbols as well
           @member_hash.each_pair do |key, values|
             new_key = key.to_s.gsub("_names", "_symbols")
@@ -139,7 +141,10 @@ module DM
               @member_hash[new_key] = values.map{|x| ":#{x}"}
             end
           end
-        # end
+
+					# Add a reference to self
+					@member_hash[:model_instance] = self
+        end
         @member_hash
       end
 
