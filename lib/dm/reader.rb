@@ -9,10 +9,10 @@ module DM
     def initialize(yaml_file, options = {})
       @models_hash = HashWithIndifferentAccess.new(YAML::load_file(yaml_file)).symbolize_keys!
       @options = options.merge(:yaml_file => yaml_file)
+			Model.add_options(options)
     end
 
     def models
-      Model.add_options(options)
 			@models ||= load_models(models_hash)
     end
 
@@ -244,12 +244,11 @@ module DM
         # go into recursion to handle the models under a namespace
         if found_namespaces = hash["namespaces"]
           found_namespaces.each_pair do |namespace, models_under_namespace|
-            models += load_models(models_under_namespace, namespaces << namespace)
+            models += load_models(models_under_namespace, namespaces + [namespace])
           end
         end
         models
-      end
-  
+      end  
   end
   
 end
