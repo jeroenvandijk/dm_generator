@@ -68,22 +68,25 @@ module DM
 		#   - 
 		def display(*args)
 			options = args.extract_options!
-			object = args.first
-			raise "The first argument should not be nil and should contain the name of object instance belonging to the attribute (attribute name: #{name})" unless object
+			object_name = args.first
+			raise "The first argument should not be nil and should contain the name of object instance belonging to the attribute (attribute name: #{name})" unless object_name
 			template = args.second || :default
 			
+			# raise "object_name : " + object_name
+			
 			if native?
-				"#{object}.#{name}"
+				"#{object_name}.#{name}"
 			else
 				# Find the display settings from the format_mapping hash
 				display = mapping(:display, template)
+
 				unless display
 					puts mapping_missing_message_for(:display, template) + ", default is used"
 					display = mapping(:display, :default)
 					raise mapping_missing_message(:display) unless display
 				end
 				
-				parse_display_template(display, options.reverse_merge(:object => object))
+				parse_display_template(display, options.reverse_merge(:object => object_name))
 			end
 		end
 
@@ -93,10 +96,15 @@ module DM
 				format_mapping[format] && format_mapping[format][type] && format_mapping[format][type][template]
 			end
 
-			def parse_display_template(display, options = {})
+			def parse_display_template(_display, options = {})
+				# Clone display so we are certain we don't make permanent changes
+				display = _display.clone
+				
 				display.gsub!("{{attribute_name}}", name)
 
 				options.each_pair { |key, value| display.gsub!("{{#{key}}}", value ) }
+				
+				display
 			end
 		
 			def mapping_missing_message_for(type, template)
@@ -119,7 +127,7 @@ module DM
 
 				type = _format if native?
 				type ||= format_mapping[@format] && format_mapping[@format][:native_type]
-				raise "The native_type for format '#{format}' is not defined in #{file} and is also not a native rails type (#{native_types.to_sentence}) " unless type
+				raise "The native_type for format '#{format}' is not defined in #{file} and is also not a native rails type (#{native_types.keys.to_sentence}) " unless type
 
 				type
 			end

@@ -224,6 +224,7 @@ module DM
 					view_templates.each do |template|
 						@attributes_for[template] = attributes.reject{|x| not x.templates.include? template.to_s }
 					end
+
         end
       
 				def extract_associations
