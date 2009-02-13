@@ -1,4 +1,6 @@
 require "dm/reader"
+require "dm/model"
+require "dm/association"
 require "dm/generator"
 require "dm/commands"
 require "dm/extended_generated_attribute"

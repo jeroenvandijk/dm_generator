@@ -3,11 +3,16 @@ $: << File.dirname(__FILE__) + '/../lib'
 # from the project root directory.
 ENV["RAILS_ENV"] = "test"
 require 'rubygems'
-require 'rails_generator'
-require 'rails_generator/scripts/generate'
-require 'rails_generator/scripts/destroy'
+%w[spec rails/version action_pack active_record
+   action_controller action_controller/test_process action_controller/integration].each &method(:require)
 
-%w[spec dm_scaffold rails_generator].each &method(:require)
+require 'dm'
+# require 'rails_generator'
+# require 'rails_generator/scripts/generate'
+# require 'rails_generator/scripts/destroy'
+# require 'active_support'
+
+# %w[spec dm]+.each &method(:require)
 
 Spec::Runner.configure do |config|
   # If you're not using ActiveRecord you should remove these

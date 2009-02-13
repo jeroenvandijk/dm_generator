@@ -1,34 +1,40 @@
 namespaces:
-  admin:
+  example:
     namespaces:
       sub_admin:
         models:      
           product:
-            # namespace: admin
+            options:
+              only: [controller, model, view]
+              # extends: entity
+              include: [helper, observer, mailer]
             associations: 
-              manufacturer:
-                type: belongs_to
-              categories:
-                type: has_and_belongs_to_many
+              - manufacturer: belongs_to
+              - categories: has_and_belongs_to_many
+                options:
+                  include_in:
+                    [form, show]
 
             attributes: 
-              name: string
-              price: decimal
+              - name: string
+                options:
+                  except: [form, index, show, migration]
+              - price: decimal
+                options:
+                  only: [form, index, show, migration]
 
-models: 
-  manufacturer:
-    associations:
-      product:
-        type: has_one
 
-    attributes:
-      name: string
+        manufacturer:
+          associations:
+            - product: has_one
+
+          attributes:
+            - name: string
       
 
-  category:
-    associations: 
-      products:
-        type: has_and_belongs_to_many
+        category:
+          associations: 
+            - products: has_and_belongs_to_many
         
-    attributes: 
-      name: string
+          attributes: 
+            - name: string

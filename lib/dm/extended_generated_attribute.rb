@@ -45,21 +45,35 @@ module DM
 
 		end
 		
-		attr_accessor :format, :templates
+		attr_reader :format
 		
-		def initialize(*args)
-			options = args.extract_options!
-			
-			name = args.first 
-			format = args.second
+		def initialize(name, format, options = {})
+      raise "test"
+      @name, @format, @options = name, format, options
 			
 			super(name, extract_type(format))
-			@templates = options[:templates] || []
 		end
 		
 		def default
 			@default ||= mapping(:examples, :valid) || super
 		end
+		
+		
+		# Attributes are basically only used for index, show, form and migrations
+		def templates
+      unless @templates
+        templates = %w(index show form migration)
+        if options[:only]
+          @templates = options[:only].map(&:to_s) & templates.map(&:to_s)
+        elsif options[:except]
+          @templates = templates.map(&:to_s) - options[:except].map(&:to_s)
+        else
+          @templates = templates
+        end
+      end
+		  @templates 
+	  end
+		
 	
 		# display returns the value of the attribute in the way it is defined in the format mapping file
 		# Expects the first argument to be the name of the template variable, e.g. @user or user

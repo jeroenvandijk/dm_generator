@@ -9,63 +9,36 @@ module DM
     
 	  def initialize(runtime_args, runtime_options = {})
 			super
-
-
-
-      options = {} 
-      options[:supported_associations] = %w(belongs_to has_many has_and_belongs_to_many has_one)
-      options[:supported_association_options] = %w(through dependent)
-      options[:parent_associations] = %w(belongs_to has_and_belongs_to_many)
-			options[:view_templates] = %w(index show new edit _form _partial)
-
-			# Load hash with format_mapping
+      DM::Model.file_instructions = options.reject {|key, _| ![:files_to_ignore, :files_to_include].include?(key) }
 			DM::ExtendedGeneratedAttribute.init_format_mapping(template_path("format_mapping.yml"))
 
       filename = @name
       @models = DM::Reader.new(filename, options).models
-      
-      # Set other variables
-      @scaffold_views = options[:view_templates]
 		end
 			
 	  protected
 
-    def abbreviations_mapping
-        @abbreviations ||= {
-          :views => :v,
-          :models => :m,
-          :controllers => :c,
-          :helpers => :h,
-          :fixtures => :f,
-          :routes => :r,
-          :migrations => :d,
-          :integration_tests => :i,
-          :unit_tests => :u
-        }
-    end
-    
-    def is_requested?(key)
-      !(options[:files_to_ignore] && options[:files_to_ignore].include?(abbreviations_mapping[key]))
-    end
-
     def add_options!(opt)
-      abbreviations = "models(m) views(v) controllers(c) helpers(h)" + 
-                      "fixtures(f) routes(r) database migrations (d) integration tests(i)" + 
-                      "units tests(u)"
+      abbreviations = DM::Model.template_settings.to_a.map{|x| "#{x.first} (#{x.second[:abbreviation]})" }.join(", ")
+
       opt.separator ''
       opt.separator 'Options:'
       opt.on("--only=", String,
              "Only create these templates types: " + abbreviations) do |v|
-               options[:files_to_ignore] = abbreviations_mapping.values - v.split('').map{|x| x.to_sym }
+               options[:files_to_ignore] = v.split('').map{|x| x.to_sym }
              end
       opt.on("--except=", String,
              "Don't generate these template types: " + abbreviations) do |v| 
-               options[:files_to_ignore] = v.split('').map{|x| x.to_sym }
+               options[:files_to_include] = v.split('').map{|x| x.to_sym }
              end
 			
 			opt.on("--template_dir=", String,
 						 "Search for templates in the given directory first, then default") do |v|
 								options[:template_dir] = v
+							end
+			opt.on("--test_type=", String,
+						 "Test type is spec (RSpec) by default") do |v|
+								options[:test_type] = v
 							end
     end
 
@@ -77,27 +50,14 @@ module DM
 			usages.join("\n")
 	  end
 
-    def path_for(model_instance, action, options = {})
-			object_instance = (options[:partial] ? "" : "@") + model_instance.singular_name
-      resource_name = (model_instance.namespaces + [model_instance.singular_name]).join("_").downcase
-
-	    case action.to_sym
-	    when :show
-	      return "#{resource_name}_path(#{object_instance})"
-	    when :edit
-	      return "edit_#{resource_name}_path(#{object_instance})"
-	    when :destroy
-				return "#{resource_name}_path(#{object_instance})"
-	    when :index  
-				return "#{resource_name.pluralize}_path"
-			when :new
-				return "new_#{resource_name}_path"
-	    end  
-	  end
-
 		def template_dir
 			options[:template_dir]
 		end
+		
+		def test_suffix
+		  options[:test_suffix] || "spec"
+	  end
+		  
 
     def template_path(filename = "", dir = nil)
 			File.join($DM_TEMPLATE_PATH, dir || "default", filename)
@@ -106,33 +66,27 @@ module DM
 		# and when a prefix is given also the name of the target filename 
 		# (hence it thus returns a string or an array with two strings)
 		def find_template_for(name, options = {})
-			prefix = options[:prefix] ? options[:prefix] + "_" : ""
-			type = options[:prefix]
 			extension = ".erb" # I don't think this will and should change, but here as a variable any way to make it flexible
 			path = template_path("", template_dir) # the template_path can be overriden by subclasses
 			# find files and raise errors when there is not exactly one matching file
-			files = Dir.glob("#{path}#{prefix}#{name}*#{extension}")
-			
+			files = Dir.glob("#{path}#{name}*#{extension}")
+
 			# If there are no files found try it again for the default directory
 			if files.empty? && template_dir
-				files = Dir.glob("#{template_path}#{prefix}#{name}*#{extension}")
+				files = Dir.glob("#{template_path}#{name}*#{extension}")
 			end
 			
-			
-			raise "Found more than one matching file in '#{path}' for '#{type}#{name}' template, candidates are: #{files.to_sentence}. Remove or rename one or more files." if files.size > 1
-			raise "Found no matching file in '#{path}' for '#{type}#{name}' template. The file should have the following format '#{prefix}#{name}#{extension}'." if files.empty?
+			if files.size > 1
+        files.sort!{|a,b| a.length <=> b.length }
+        
+			  puts "Found more than one matching file in '#{path}' for '#{name}' template, candidates are: #{files.to_sentence}. The match with the shortes length is chosen: '#{files.first}'."
+			end
+
+			raise "Found no matching file in '#{path}' for '#{name}' template. The file should have the following format '#{name}#{extension}'." if files.empty?
 
 			# No we know there is only one file, and that file has the defined prefix and the define extension
 			# We want to be able to load the templates from the rails root instead of dm_scaffold/dm_*/templates/ so we need to compensate this
 			path_to_template = File.join(%w(.. .. .. .. .. ..) << files.first)
-
-			# When there is a prefix, the target filename should be extracted from the found template in othercases not
-			if options[:prefix]
-				target_filename = File.basename(path_to_template, extension).slice(prefix.size..-1)
-				[path_to_template, target_filename]
-			else
-				path_to_template
-			end
 		end
 	end
 end
