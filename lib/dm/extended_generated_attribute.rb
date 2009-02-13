@@ -45,10 +45,9 @@ module DM
 
 		end
 		
-		attr_reader :format
+		attr_reader :format, :options
 		
 		def initialize(name, format, options = {})
-      raise "test"
       @name, @format, @options = name, format, options
 			
 			super(name, extract_type(format))

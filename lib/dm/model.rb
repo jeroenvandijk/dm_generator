@@ -123,10 +123,9 @@ module DM
 
        @controller_class_name = ( (@namespaces.empty? ? "" : controller_class_path + "/" ) + plural_name).camelize
 
-       raise "test"
-       @attributes = (model_hash[:attributes] || []).collect { |attribute| DM::ExtendedGeneratedAttribute.new( *extract_name_type_and_options(attribute) ) }
 
-       @assocations = (model_hash[:associations] || []).collect { |association| DM::Association.new( *extract_name_type_and_options(association) ) }
+       @attributes = (model_hash[:attributes] || []).collect { |attribute| DM::ExtendedGeneratedAttribute.new( *extract_name_type_and_options(attribute) ) }
+       @associations = (model_hash[:associations] || []).collect { |association| DM::Association.new( *extract_name_type_and_options(association) ) }
 
     end
  
@@ -141,7 +140,7 @@ module DM
     def define_model;       "class #{class_name} < ActiveRecord::Base" + (block_given? ? yield.to_s : "") + "\nend"; end
     def make_resourceful;   "make_resourceful do\n#{indent * 2}actions :all\n"+ (has_parents? ? "#{indent * 2}belongs_to: #{parents.join(',')}\n" : '') + "#{indent}end"; end
 
-    def form_for;           block_in_template{"form_for #{form_for_args} do |#{form_reference}|"} + (block_given? ? yield.to_s : "") + "\n#{block_in_template{"end"}}"; end
+    def form_for;           block_in_template{ "form_for #{form_for_args} do |#{form_reference}|" } + (block_given? ? yield.to_s : "") + "\n#{block_in_template{"end"}}"; end
 
     def form_for_args
       args = namespaces + (has_parent? ? ["parent_object"] : []) + [singular_name]
@@ -161,7 +160,7 @@ module DM
 
     # Render form use the field_for template too include the form of the nested object
     def render_fields_for(object)
-      assign_in_template { "#{form_reference}.fields_for {|#{form_reference}| render '#{object.pluralize}/fields_for', :locals => {:#{form_reference} => #{form_reference}} }"  }
+      assign_in_template { "#{form_reference}.fields_for {|#{form_reference}| render :partial => '#{object.pluralize}/fields_for', :locals => {:#{form_reference} => #{form_reference}} }"  }
     end
 
     def has_parent?
@@ -260,14 +259,22 @@ module DM
     end
 
     def associations_for(template)
-      []# @attributes_for ||= {}
-      # @attributes_for[template] ||= associations.reject{|x| not x.templates.include? template.to_s }
+      @attributes_for ||= {}
+      @attributes_for[template] ||= associations.reject{|x| not x.templates.include? template.to_s }
     end
 
 
     # translations
     def page_title(action = "default")
       assign_in_template{ "@page_title = translate_for('#{singular_name}.#{action}.title')" }
+    end
+    
+    def save_form_button
+      assign_in_template { "#{form_reference}.submit translate_save_for(:#{singular_name})" }
+    end
+    
+    def error_messages
+      assign_in_template { "#{form_reference}.error_messages" }
     end
 
     private
@@ -288,7 +295,7 @@ module DM
       elsif field.size != 1
         raise "wrong number of fields for field #{field.inspect} in model #{singular_name} in #{yaml_file}. Should have 1 name, type key-value pair, and an options hash is.. yup optional"
       end
-      raise [field.to_a, field_options || {}].flatten
+      [field.to_a, field_options || {}].flatten
     end
     
   end
