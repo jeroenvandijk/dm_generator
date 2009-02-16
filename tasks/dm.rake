@@ -26,25 +26,16 @@ namespace :dm do
 
 	desc "Exports a datamodel to Yaml by inspecting ActiveRecord models present in the models directory"
 	task :export => :environment do
-				
-		data_model = {}
-		for_all_models do |model_class, model_name, namespaces|
-			
-			# Go to the right place in the hash
-			base = namespaces.inject(data_model) do |base, namespace| 
-				base["namespaces"] ||= {}
-				base["namespaces"][namespace] ||= {}
-			end
-			
-			# Add the model
-			base["models"] ||= {} 
-			base["models"].merge!( model_name => {	"associations" => extract_associations(model_class),
-																							"attributes" => extract_attributes(model_class) } )
-		end
-		# raise data_model.inspect
 
-		puts(data_model.to_yaml)
+		puts(create_model.to_yaml)
 	end
+	
+	desc "Updates all models defined in the Yaml file, does not rewrite options"
+	task :update, :yaml_file do |t, args|
+    data_model = read_yaml_file(args.yaml_file)
+	  
+	  puts update_model(data_model).to_yaml 
+  end
 
 	desc "Destroy current data model (including all generated migrations, views and controllers)"
 	task :destroy do

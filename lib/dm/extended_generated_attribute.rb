@@ -45,61 +45,73 @@ module DM
 
 		end
 		
-		attr_reader :format, :options
+		attr_reader :format, :options, :templates, :model
+		
+		delegate :assign_in_template, :block_in_template, :to => :model
 		
 		def initialize(name, format, options = {})
       @name, @format, @options = name, format, options
 			
 			super(name, extract_type(format))
+
+  		# Attributes are basically only used for index, show, form and migrations			
+			@templates = %w(index show form migration)
+			@templates = options[:only].map(&:to_s) & templates.map(&:to_s) if options[:only]
+      @templates = templates.map(&:to_s) - options[:except].map(&:to_s) if options[:except]
+      
+      
+      @model = options[:model] || nil
 		end
 		
 		def default
 			@default ||= mapping(:examples, :valid) || super
 		end
 		
-		
-		# Attributes are basically only used for index, show, form and migrations
-		def templates
-      unless @templates
-        templates = %w(index show form migration)
-        if options[:only]
-          @templates = options[:only].map(&:to_s) & templates.map(&:to_s)
-        elsif options[:except]
-          @templates = templates.map(&:to_s) - options[:except].map(&:to_s)
-        else
-          @templates = templates
-        end
-      end
-		  @templates 
+		def form_label
+      assign_in_template{ "#{model.form_reference}.label :#{name}" }
 	  end
-		
+	  
+	  def form_field
+      assign_in_template{ "#{model.form_reference}.#{field_type} :#{name}" }
+    end
+	
+	  def display_name(template)
+      # if native?
+	      assign_in_template{ "#{model.class_name}.human_attribute_name(:#{name})" }
+      # else
+      #   display = mapping(:display_name, template)
+      #   
+      # end
+	    
+    end
 	
 		# display returns the value of the attribute in the way it is defined in the format mapping file
 		# Expects the first argument to be the name of the template variable, e.g. @user or user
 		# Second argument (optional) is the symbol for the template in which we want the attribute to display
 		# Arbitrary parsing can be done in through the options hash, the {{key}} will be replaced with the value
-		#   - 
-		def display(*args)
-			options = args.extract_options!
-			object_name = args.first
-			raise "The first argument should not be nil and should contain the name of object instance belonging to the attribute (attribute name: #{name})" unless object_name
-			template = args.second || :default
+		def display(template, options = {})
+      # options = args.extract_options!
+      # object_name = args.first
+      # raise "The first argument should not be nil and should contain the name of object instance belonging to the attribute (attribute name: #{name})" unless object_name
+      # template = args.second || :default
 			
-			# raise "object_name : " + object_name
-			
-			if native?
-				"#{object_name}.#{name}"
-			else
-				# Find the display settings from the format_mapping hash
-				display = mapping(:display, template)
+			instance = (options[:partial] ? '' : '@') + model.singular_name
 
-				unless display
-					puts mapping_missing_message_for(:display, template) + ", default is used"
-					display = mapping(:display, :default)
-					raise mapping_missing_message(:display) unless display
-				end
+			assign_in_template do
+  			if native?
+  				"#{instance}.#{name}"
+  			else
+  				# Find the display settings from the format_mapping hash
+  				display = mapping(:display, template)
+
+  				unless display
+  					puts mapping_missing_message_for(:display, template) + ", default is used"
+  					display = mapping(:display, :default)
+  					raise mapping_missing_message(:display) unless display
+  				end
 				
-				parse_display_template(display, options.reverse_merge(:object => object_name))
+  				parse_display_template( display, options.reverse_merge(:object => instance) )
+  			end
 			end
 		end
 

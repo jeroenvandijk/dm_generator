@@ -1,3 +1,5 @@
+require File.dirname(__FILE__) + '/model/helper'
+
 module DM
 	# Model class is responsible for extracting all information for each model
  class Model
@@ -87,6 +89,7 @@ module DM
                 :habtm_associations,
                 :model_hash,
                 :namespaces,
+                :namespace_symbols,
                 :plural_name,
                 :singular_name,
                 :table_name,
@@ -129,68 +132,11 @@ module DM
 
     end
  
-    # TODO add api comments
-
-    def form_reference;     "f"; end
-
-    def define_helper;      "module #{controller_class_name}Helper" + (block_given? ? yield.to_s : "") + "\nend"; end
-    def define_observer;    "def #{class_name}Observer" + (block_given? ? yield.to_s : "") + "\nend"; end
-    def define_mailer;      "class #{controller_class_name}Mailer < ActionMailer::Base" + (block_given? ? yield.to_s : "") + "\nend"; end
-    def define_controller;  "class #{controller_class_name}Controller < ApplicationController" + (block_given? ? yield.to_s : "") + "\nend"; end
-    def define_model;       "class #{class_name} < ActiveRecord::Base" + (block_given? ? yield.to_s : "") + "\nend"; end
-    def make_resourceful;   "make_resourceful do\n#{indent * 2}actions :all\n"+ (has_parents? ? "#{indent * 2}belongs_to: #{parents.join(',')}\n" : '') + "#{indent}end"; end
-
-    def form_for;           block_in_template{ "form_for #{form_for_args} do |#{form_reference}|" } + (block_given? ? yield.to_s : "") + "\n#{block_in_template{"end"}}"; end
-
-    def form_for_args
-      args = namespaces + (has_parent? ? ["parent_object"] : []) + [singular_name]
-      args.size == 1 ? args.first : args
-    end
- 
-    # Render partial exploits the new rails render feature:
-    # - render @article  # Equivalent of render :partial => 'articles/_article', :object => @article
-    # - render @articles # Equivalent of render :partial => 'articles/_article', :collection => @articles  
-    def render_partial(objects)
-     assign_in_template { "render #{objects}" }
-    end
-
-    def render_form
-      assign_in_template { "render :partial => :form, :locals => {:#{singular_name} => #{singular_name} }" }
-    end
-
-    # Render form use the field_for template too include the form of the nested object
-    def render_fields_for(object)
-      assign_in_template { "#{form_reference}.fields_for {|#{form_reference}| render :partial => '#{object.pluralize}/fields_for', :locals => {:#{form_reference} => #{form_reference}} }"  }
-    end
 
     def has_parent?
-      @has_parent ||= nil #associations.inject(false) { |result, association| result || association.child? }
+      @has_parent ||= associations.inject(false) { |result, association| result || association.is_parent_relation? }
     end
 
-    # def m_r_link_to(action, text)
-    #   case action
-    #   when
-    #     
-    #   end
-    # end
-
-    def link_to(action, options = {}) 
-      type = options[:type] || "path"
-      partial = options[:partial] || "default"
-      instance = partial == "partial" ? singular_name : "@#{singular_name}"
-    
-      assign_in_template do
-        "link_to translate_for('#{singular_name}.#{partial}.link_to_#{action}'), " +
-        case action 
-        when :new      : "new_#{singular_name}_#{type}"
-        when :edit     : "edit_#{singular_name}_#{type}(#{instance})"
-        when :destroy  : "#{instance}, :confirm => translate_for('#{singular_name}.#{partial}.confirm_destroy_message'), :method => :delete"
-        when :index    : "#{plural_name}_path"
-        when :show     : "#{instance}"
-        end
-      end
-    end
-    
     def manifest=(manifest)
       @manifest = manifest
     end
@@ -232,49 +178,37 @@ module DM
       end
     end
 
-    # TODO write how this can be overwritten so that it can be used for haml
-    def block_in_template;                "<% " + yield + " %>"; end
-    def assign_in_template;               "<%= " + yield + " %>"; end
-
-
     def indent
       "\t"
     end
 
     def parents
-      @parents ||= associations.reject { |association| not association.is_parent_relation? }.map{|x| ":#{x.singularize}" }
+      @parents ||= associations.reject { |association| not association.is_parent_relation? }.map{|x| ":#{x.name.singularize}" }
     end
 
     def has_parents?
-      parents.empty?
+      not parents.empty?
     end
 
     def has_attribute?(name)
       attributes.inject(false) { |result, attribute| result || attribute.name == name.to_s }
     end
 
-    def attributes_for(template)
+    # Make sure _partial are recognized
+    def format_template_name(template_name)
+      template_name.to_s.gsub('_', '')
+    end
+
+    def attributes_for(_template)
+      template = format_template_name(_template)
       @attributes_for ||= {}
-      @attributes_for[template] ||= attributes.reject{|x| not x.templates.include? template.to_s }
+      @attributes_for[template.to_sym] ||= attributes.reject{|x| not x.templates.include? template }
     end
 
-    def associations_for(template)
-      @attributes_for ||= {}
-      @attributes_for[template] ||= associations.reject{|x| not x.templates.include? template.to_s }
-    end
-
-
-    # translations
-    def page_title(action = "default")
-      assign_in_template{ "@page_title = translate_for('#{singular_name}.#{action}.title')" }
-    end
-    
-    def save_form_button
-      assign_in_template { "#{form_reference}.submit translate_save_for(:#{singular_name})" }
-    end
-    
-    def error_messages
-      assign_in_template { "#{form_reference}.error_messages" }
+    def associations_for(_template)
+      template = format_template_name(_template)
+      @associations_for ||= {}
+      @associations_for[template.to_sym] ||= associations.reject{|x| not x.templates.include? template }
     end
 
     private
@@ -295,8 +229,9 @@ module DM
       elsif field.size != 1
         raise "wrong number of fields for field #{field.inspect} in model #{singular_name} in #{yaml_file}. Should have 1 name, type key-value pair, and an options hash is.. yup optional"
       end
-      [field.to_a, field_options || {}].flatten
+      [field.to_a, field_options.merge(:model => self) || {:model => self}].flatten
     end
     
+    include DM::ModelHelper
   end
 end

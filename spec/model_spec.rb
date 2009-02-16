@@ -104,21 +104,21 @@ END_OF_YAML
   	  end
 
   		it "should define a model with #define_model" do
-  		  @model.define_model{}.should eql "class #{@class_name} < ActiveRecord::Base\nend"
+  		  @model.define_model{}.should eql "class #{@class_name} < ActiveRecord::Base" #  \nend"
   	  end
 
   		it "should define a controller with #define_controller" do
-  		  @model.define_controller{}.should eql "class #{@controller_class_name}Controller < ApplicationController\nend"
+  		  @model.define_controller{}.should eql "class #{@controller_class_name}Controller < ApplicationController" # \nend"
   	  end
   		it "should declare make_resourceful without parents" do
-  		  @model.make_resourceful.should eql "make_resourceful do\n#{@indent * 2}actions :all\n#{@indent * 2}end"
+  		  @model.make_resourceful.should eql "make_resourceful do\n#{@indent * 2}actions :all\n#{@indent * 1}end"
   	  end
     end
     
     # TODO do this for partial and not a partial
 		describe "ActionView methods" do
 			it "#form_for should define a form" do
-			  @model.form_for{}.should eql "<% form_for @#{@model_name} do |f| %>\n<% end %>"
+			  @model.form_for{}.should eql "<% form_for #{@model_name} do |f| %>" #"\n<% end %>"
 		  end
 			it "should define a link_to new with #link_to(:new)" do
 			  @model.link_to(:new).should eql "<%= link_to translate_for('#{@model_name}.default.link_to_new'), new_#{@model_name}_path %>"
@@ -131,13 +131,13 @@ END_OF_YAML
         @model.link_to(:edit, :partial => "partial").should eql "<%= link_to translate_for('#{@model_name}.partial.link_to_edit'), edit_#{@model_name}_path(#{@model_name}) %>"
 	    end
 			it "should define a link_to destroy with #link_to(:destroy)" do
-			  @model.link_to(:destroy).should eql "<%= link_to translate_for('#{@model_name}.default.link_to_destroy'), @#{@model_name}, :confirm => translate_for('#{@model_name}.default.confirm_destroy_message'), :method => :delete %>"
+			  @model.link_to(:destroy).should eql "<%= link_to translate_for('#{@model_name}.default.link_to_destroy'), #{@model_name}_path(@#{@model_name}), :confirm => translate_for('#{@model_name}.default.confirm_destroy_message'), :method => :delete %>"
 		  end
 			it "should define a link_to index with #link_to(:index)" do
 			  @model.link_to(:index).should eql "<%= link_to translate_for('#{@model_name}.default.link_to_index'), #{@model_name.pluralize}_path %>"
 		  end
 			it "should define a link_to show with #link_to(:show)" do
-        @model.link_to(:show).should eql "<%= link_to translate_for('#{@model_name}.default.link_to_show'), @#{@model_name} %>"
+        @model.link_to(:show).should eql "<%= link_to translate_for('#{@model_name}.default.link_to_show'), #{@model_name}_path(@#{@model_name}) %>"
 		  end
 		end
 		

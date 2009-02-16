@@ -1,3 +1,5 @@
+require 'active_support'
+
 module DM
   class Association
     attr_reader :name, :type, :options, :templates
