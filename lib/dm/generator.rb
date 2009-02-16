@@ -9,7 +9,7 @@ module DM
     
 	  def initialize(runtime_args, runtime_options = {})
 			super
-      DM::Model.file_instructions = options.reject {|key, _| ![:files_to_ignore, :files_to_include].include?(key) }
+      DM::Model::Base.file_instructions = options.reject {|key, _| ![:files_to_ignore, :files_to_include].include?(key) }
 			DM::ExtendedGeneratedAttribute.init_format_mapping(template_path("format_mapping.yml", template_dir))
 
       filename = @name
@@ -19,7 +19,7 @@ module DM
 	  protected
 
     def add_options!(opt)
-      abbreviations = DM::Model.template_settings.to_a.map{|x| "#{x.first} (#{x.second[:abbreviation]})" }.join(", ")
+      abbreviations = DM::Model::Base.template_settings.to_a.map{|x| "#{x.first} (#{x.second[:abbreviation]})" }.join(", ")
 
       opt.separator ''
       opt.separator 'Options:'

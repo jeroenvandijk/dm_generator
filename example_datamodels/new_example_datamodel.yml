@@ -3,6 +3,21 @@ namespaces:
     namespaces:
       sub_admin:
         models:      
+          manufacturer:
+            associations:
+              - product: has_one
+
+            attributes:
+              - name: string
+
+
+          category:
+            associations: 
+              - products: has_and_belongs_to_many
+
+            attributes: 
+              - name: string
+              
           product:
             options:
               only: [controller, model, view]
@@ -24,17 +39,4 @@ namespaces:
                   only: [form, index, show, migration]
 
 
-        manufacturer:
-          associations:
-            - product: has_one
-
-          attributes:
-            - name: string
-      
-
-        category:
-          associations: 
-            - products: has_and_belongs_to_many
         
-          attributes: 
-            - name: string

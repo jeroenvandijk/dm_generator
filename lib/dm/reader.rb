@@ -13,7 +13,7 @@ module DM
 				raise "Models yaml file could not be loaded: #{e}"
 			end
       @options = options.merge(:yaml_file => yaml_file)
-			Model.add_options(options)
+			Model::Base.add_options(options)
     end
 
     def models
@@ -26,7 +26,7 @@ module DM
         # first handle all normal models
         if models_hash = hash["models"]
           models_hash.each_pair do |model_name, model_properties|
-            models << Model.new(model_name, model_properties, :namespaces => namespaces)
+            models << Model::Base.new(model_name, model_properties, :namespaces => namespaces)
           end
         end
       

@@ -42,55 +42,9 @@ class DmGenerator < DM::ExtendedNamedBase
           m.template( find_template_for("view_#{action}"), File.join('app', 'views', m.controller_class_path, m.plural_name) )
         end
 
-        # models.each do |m|
-        #         # Migrations
-        # # TODO create the migrations without the timestamp hack
-        # 
-        #   r.migration_template(find_template_for('migration.rb'), 'db/migrate', 
-        #             :assigns => { model => m}.merge( :migration_name => "Create#{m.table_name.camelize}"),
-        #     :migration_file_name => "create_#{m.table_name.pluralize}")
-        # 
-        #   r.sleep(1) # TODO make this unnecessary
-        # 
-        #           m.habtm_associations.each do |habtm_assoc|
-        #             habtm_pair = [m.model_name, habtm_assoc.singularize].sort
-        #             habtm_table_name = habtm_pair.map{|x| x.pluralize.underscore}.join('_')
-        #             migration_file_name = "create_join_table_#{habtm_table_name}.rb"
-        #           
-        #     r.migration_template(find_template_for('migration.rb'), 'db/migrate', 
-        #               :assigns => { model => m}.merge(
-        #         :migration_name => "Create#{m.table_name.camelize}",
-        #         :habtm_pair => habtm_pair,
-        #         :habtm_table_name => habtm_table_name),
-        #       :migration_file_name => "create_#{m.table_name.pluralize}")
-        # 
-        #     r.sleep(1) # TODO make this unnecessary
-        #           end
-        #         end
+        m.migration_template(find_template_for('migration.rb'), 'db/migrate')
+        m.habtm_migration_template(find_template_for('habtm_migration.rb'), 'db/migrate')
 
-        #  # TODO create the migrations without the timestamp hack
-				#	if is_requested? :migrations
-        #   r.template(find_template_for('migration.rb'), File.join('db/migrate', "create_#{m.table_name}.rb"), 
-        #     :assigns => { model => m}.merge( :migration_name => "Create#{m.table_name.camelize}")
-        #   )
-        # 
-        #   m.habtm_associations.each do |habtm_assoc|
-        # 
-        #     habtm_pair = [m.model_name, habtm_assoc.singularize].sort
-        #     habtm_table_name = habtm_pair.map{|x| x.pluralize.underscore}.join('_')
-        #     migration_file_name = "create_join_table_#{habtm_table_name}.rb"
-        #   
-        #   
-        #     r.template(find_template_for('habtm_migration.rb'), File.join('db/migrate', migration_file_name),
-        #       :assigns => { model => m}.merge(
-        #        :migration_name => migration_file_name.camelize,
-        #        :habtm_pair => habtm_pair,
-        #        :habtm_table_name => habtm_table_name)
-        #     )
-        #   end
-        # end
-      
-      
       # Generate routes
       # TODO routes should be generate at once given all resources. This saves many unnecessary regular expression, or not?
       # Do something with models here!      
