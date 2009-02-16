@@ -37,17 +37,28 @@ module DM
     # - render @article  # Equivalent of render :partial => 'articles/_article', :object => @article
     # - render @articles # Equivalent of render :partial => 'articles/_article', :collection => @articles  
     def render_partial(objects)
-     assign_in_template { "render #{objects}" }
+      if objects == objects.singularize
+        assign_in_template { "render :partial => #{objects}, :object => #{objects} "}
+      else
+        assign_in_template { "render :partial => #{objects}, :collection => #{objects} "}
+      end
+
+
+     # assign_in_template { "render #{objects}" } # 2.3
     end
 
     def render_form
-      assign_in_template { "render :partial => :form, :locals => {:#{singular_name} => #{singular_name} }" }
+      assign_in_template { "render :partial => 'form', :locals => {:#{singular_name} => @#{singular_name} }" }
+    end
+    
+    def render_form_fields
+      assign_in_template { "render :partial => 'form_fields', :locals => {:#{form_reference} => #{form_reference} }" }
     end
 
     # Render form use the field_for template too include the form of the nested object
     def render_fields_for(object)
       prefix = object.singularize == singular_name ? '' : object.pluralize + '/'
-      assign_in_template { "#{form_reference}.fields_for {|fields| render :partial => '#{prefix}fields_for', :locals => {:#{form_reference} => fields} }"  }
+      assign_in_template { "#{form_reference}.fields_for {|fields| render :partial => '#{prefix}form_fields', :locals => {:#{form_reference} => fields} }"  }
     end
 
     # def m_r_link_to(action, text)
@@ -60,7 +71,7 @@ module DM
     def link_to(action, options = {}) 
       type = options[:type] || "path"
       template = options[:template] || "default"
-      instance = template == "partial" ? singular_name : "@#{singular_name}"
+      instance = template.to_sym == :partial ? singular_name : "@#{singular_name}"
     
       assign_in_template do
         "link_to translate_for('#{singular_name}.#{template}.link_to_#{action}'), " +

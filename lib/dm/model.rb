@@ -50,7 +50,6 @@ module DM
       
 
       def template_should_be_generated?(type)
-
         default = !(template_settings[type] && template_settings[type][:exclude_by_default])
 
         if default
@@ -60,6 +59,8 @@ module DM
           file_instructions[:files_to_include] &&
           file_instructions[:files_to_include].inject(false) { |result, abbreviation| result || type == template_from_mapping(abbreviation) }
         end
+        
+        
       end
 		end
 		
@@ -102,10 +103,11 @@ module DM
        @plural_name = model_name.pluralize
        @singular_name = plural_name.singularize
        @file_name = singular_name.underscore
+        
        @files_to_include = options[:include] || []
        @files_to_exclude = options[:only] || []
 
-
+       
        @model_hash = HashWithIndifferentAccess.new(model_hash).symbolize_keys!
 
        raise "Model #{model_name} should have attributes or associations can be left empty in #{yaml_file}" unless model_hash
@@ -142,13 +144,13 @@ module DM
     end
 
     def template_should_be_generated?(template)
-      default = DM::Model.template_should_be_generated?(template)
+      default = DM::Model.template_should_be_generated?(template.to_sym)
 
       if default
         not files_to_exclude.include?(template)
       else
         files_to_include.include?(template)
-      end
+      end            
     end
 
     def template(template, base_path, options = {})

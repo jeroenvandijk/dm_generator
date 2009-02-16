@@ -15,7 +15,7 @@ class DmGenerator < DM::ExtendedNamedBase
         manifest.directory(File.join('app/controllers',  m.controller_class_path))
         manifest.directory(File.join('app/models',       m.class_path))
         manifest.directory(File.join('app/observers',    m.class_path))
-        manifest.directory(File.join('app/mailers',    m.class_path))
+        manifest.directory(File.join('app/mailers',      m.class_path))
         manifest.directory(File.join('app/views',        m.controller_class_path, m.plural_name))
         manifest.directory(File.join('app/helpers',      m.controller_class_path))
         # 
@@ -90,13 +90,10 @@ class DmGenerator < DM::ExtendedNamedBase
         #   end
         # end
       
-      # 
-      # # Generate routes
-      # # TODO routes should be generate at once given all resources. This saves many unnecessary regular expression, or not?
-      # # Do something with models here!
-      # # r.routes_nested_resources name, parent_names, "\t"       if is_requested? :routes
-      # 
-      # 
+      
+      # Generate routes
+      # TODO routes should be generate at once given all resources. This saves many unnecessary regular expression, or not?
+      # Do something with models here!      
       end
     end
   end

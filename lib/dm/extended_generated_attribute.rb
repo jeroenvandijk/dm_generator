@@ -72,7 +72,14 @@ module DM
 	  end
 	  
 	  def form_field
-      assign_in_template{ "#{model.form_reference}.#{field_type} :#{name}" }
+      assign_in_template do
+  	    if native? || !format_mapping[format]['form_field']
+          "#{model.form_reference}.#{field_type} :#{name}"
+        else
+          parse_display_template(format_mapping[format]['form_field'], :form_reference => model.form_reference, :object => model.singular_name)
+        end
+      end
+      
     end
 	
 	  def display_name(template)
@@ -95,7 +102,7 @@ module DM
       # raise "The first argument should not be nil and should contain the name of object instance belonging to the attribute (attribute name: #{name})" unless object_name
       # template = args.second || :default
 			
-			instance = (options[:partial] ? '' : '@') + model.singular_name
+			instance = (template == :partial ? '' : '@') + model.singular_name
 
 			assign_in_template do
   			if native?
