@@ -1,7 +1,8 @@
 require "yaml" # For exporting and importing of the datamodel\
 require 'find' # For finding namespaces
+require File.dirname(__FILE__) + '/../lib/xmi_reader'
 
-# We want the export YAML file to be sort on its keys, so it is easier to find stuff
+We want the export YAML file to be sort on its keys, so it is easier to find stuff
 class Hash
   # Replacing the to_yaml function so it'll serialize hashes sorted (by their keys)
   #
@@ -37,7 +38,17 @@ namespace :dm do
     puts update_model(data_model).to_yaml 
   end
 
-
+  namespace :xmi do
+    desc "Reads a xmi file and returns yaml"
+    task :to_yaml, :xmi_file do |t, args|
+      raise "No file given" unless args.xmi_file
+      puts XmiReader.new(args.xmi_file).to_yaml
+    end
+  end
+    
+    
+    
+    
   def update_model(data_model = {})
     for_all_models do |model_class, model_name, namespaces|
 
@@ -83,109 +94,7 @@ namespace :dm do
       
 
     end
-    
-    # namespace :from_file do
-    #   desc "Destroy models"
-    #   task :models, :yaml_file do |t, args|
-    #   TODO  
-    #     empty
-    # end
-  end
 
-  desc "Runs scaffolds to create the datamodel as in the given file"
-  task :generate, :yaml_file do |t, args|
-    generate_entities args.yaml_file, "scaffold"
-    reset_database
-    Rake::Task["db:fixtures:load"].invoke
-  end
-  
-  namespace(:generate) do
-    desc "Generates all models defined in the datamodel"
-    task :models, :yaml_file do |t, args|
-      generate_entities args.yaml_file, "model"
-      reset_database
-    end
-  
-    desc "Generates all models defined in the datamodel"
-    task :views, :yaml_file do |t, args|
-        generate_entities args.yaml_file, "views"
-    end
-  
-    desc "Generates all routes according to the relations in the datamodel"
-    task :routes, :yaml_file do |t, args|
-      generate_entities args.yaml_file, "routes"
-    end
-  
-    desc "Generates all models defined in the datamodel"
-    task :controllers, :yaml_file do |t, args|
-        generate_entities args.yaml_file, "controllers"
-    end
-  end
-
-  def destroy_entities(file, entity)
-    for_data_model(file) do |model, properties|
-      destroy generate_arguments(model, properties), entity
-    end
-  end
-
-  def generate_entities(file, entity )
-    for_data_model(file) do |model, properties|
-      generate generate_arguments(model, properties), entity
-    end
-  end
-
-  
-  def generate_arguments(model, properties)
-    attributes_to_ignore = %w(id updated_at created_at) # Are already there so we don't need to add them
-
-    attributes = []
-    properties["attributes"].reject{|attr,_| attributes_to_ignore.include?(attr)}.
-      each_pair do |field, type| 
-        attributes << "#{field}:#{type}" 
-      end
-
-    associations = []
-    properties["associations"].each_pair do |name, prop| 
-      options = []
-      prop.keys.each do |option|
-        options << "#{option}:#{prop[option]}" if prop[option] && option != "type"
-      end
-      associations << "#{name}:#{prop["type"]}[#{options.join(",")}]" 
-    end
-    
-    namespace = properties["namespace"] + '/' if properties["namespace"] 
-    namespace ||= ""
-    "#{namespace}#{model} #{(attributes + associations).join(" ")}"
-  end
-    
-  def reset_database
-    empty_database
-    Rake::Task["db:migrate"].invoke
-  end 
-
-  def drop_database
-    Rake::Task["db:reset"].invoke
-  end
-  
-  def empty_database
-    drop_database
-    Rake::Task["db:create"].invoke
-  end
-
-  def generator
-    "dm"
-  end
-
-  def destroy(args, action = "scaffold")
-    script "destroy", args, action
-  end
-  
-  def generate(args, action = "scaffold")
-    script "generate", args, action
-  end
-  
-  def script(type, args, action)
-    system "script/#{type} #{generator}_#{action} #{args} --backtrace" 
   end
   
   def for_data_model(file)
@@ -201,7 +110,6 @@ namespace :dm do
     
     YAML::load_file(file)
   end
-  
   
   def for_all_models 
     model_files = Dir.glob("#{RAILS_ROOT}/app/models/*.rb")
@@ -263,15 +171,7 @@ namespace :dm do
     klass.reflect_on_all_associations.each do |assoc|
       association = {assoc.name.to_s => assoc.macro.to_s}
       
-      unless assoc.options.empty?
-        # TODO revise the restriction below. I (Jeroenvandijk) think this is the only thing we are really interested. The rest gives superfluous clutter.
-        allowed_options = [:through, :dependent] 
-        options = {}
-        allowed_options.each do |option| 
-          options[option.to_s] = assoc.options[option].to_s if assoc.options[option]
-        end
-        association["options"] = options unless options.empty?
-      end
+      association["options"] = assoc.options unless assoc.options.empty?
       
       associations << association
     end

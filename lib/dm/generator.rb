@@ -46,7 +46,7 @@ module DM
 		def banner
 			generator_name = self.class.to_s.underscore.gsub("_generator", "")
 			usages = []
-			usages << "Usage: #{$0} #{generator_name} file_with_model_definition.yml"
+			usages << "Usage: #{$0} #{generator_name} file_with_model_definition.[yml|xmi] [options]"
 			usages.join("\n")
 	  end
 
