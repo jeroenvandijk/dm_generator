@@ -16,9 +16,13 @@ class XmiReader
     load_associations
     remove_empty_models
   end
+  
+  def to_h
+    @to_h ||= { "models" => models }
+  end
 
   def to_yaml
-    models.to_yaml
+    to_h.to_yaml
   end
   
   private
@@ -107,7 +111,9 @@ class XmiReader
   
   # See if we can find hidden has_and_belongs_to_many and has_many :through associations
   def reinterpret_associations
+    # raise models.keys.inspect
     models.each_pair do |a, properties|
+      
       if associations = properties["associations"]
         associations = associations.collect do |association|
 
@@ -117,6 +123,8 @@ class XmiReader
           #  or could imply a has_many through association
           if relation_of_a_with_b == "has_many" && !(options && options["through"])
             relation_of_b_with_a = find_association_type_of(b, a)
+
+            # raise  b  + find_association_type_of(b, a)  + a + models.to_yaml
 
             # If 'b => a' is also a has_many or habtm we need to change the type of 'a => b'
             if relation_of_b_with_a =~ /has_many|has_and_belongs_to_many/
@@ -131,7 +139,10 @@ class XmiReader
                 # If 'b => c' is a belongs_to and 'c => b' is a has_many, we found a has_many through relation 'a => c'
                 if c != a && relation_of_b_with_c == "belongs_to"
                   if find_association_type_of(c, b) == "has_many"
-                    remember_association_for(a, c.pluralize, "has_many", :through => b)
+                    # We need to remember instead of adding associations because we are in a collect loop. 
+                    # Which would otherwise overwrite our changes
+
+                    remember_association_for(a, c.pluralize, "has_many", :through => b)       
                   end
                 end
               end
@@ -170,12 +181,16 @@ class XmiReader
     associations = models[model] && models[model]["associations"]    
   end
   
-  def find_association_type_of(source, target)
+  # Somehow i got a bug here, TODO add tests
+  def find_association_type_of(source, _target)
+    target = _target.singularize 
+    
     find_associations_of(source.singularize).each do |association| 
       other, type = association.to_a.first
-      return type if other == target
+      return type if other.singularize == target
     end
+    
+    # Nothing found
+    return nil
   end
 end
-
-puts XmiReader.new("xmi_example.xmi").to_yaml

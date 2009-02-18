@@ -4,25 +4,40 @@ module DM
   class Reader 
     attr_accessor :models_hash,
                   :options,
-									:yaml_file
+                  :file
 
-    def initialize(yaml_file, options = {})
-      begin
-				@models_hash = HashWithIndifferentAccess.new(YAML::load_file(yaml_file)).symbolize_keys!
-			rescue StandardError => e
-				raise "Models yaml file could not be loaded: #{e}"
-			end
-      @options = options.merge(:yaml_file => yaml_file)
-			Model::Base.add_options(options)
+    def initialize(file, options = {})
+      @models_hash = read_file(file)
+      @options = options.merge(:file => file)
+      
+      # Set options for Model on Class level
+      Model::Base.add_options(options)
     end
 
     def models
-			@models ||= load_models(models_hash)
+      @models ||= load_models(models_hash)
     end
 
     private 
+
+      # Read the file which can either be an xmi or yaml file
+      def read_file(file)
+        extension = file.split('.').last
+
+        raise "Models file should be of the format yml or xmi. The given file '#{file}' has an '#{extension}' extension." unless extension =~ /yml|xmi/
+
+        begin
+          HashWithIndifferentAccess.new(extension == "xmi" ? XmiReader.new(file).to_h : YAML::load_file(file) ).symbolize_keys!
+
+        rescue StandardError => e
+          raise "Models file '#{file}' could not be loaded: #{e}"
+        end
+      end
+    
+      # Go through the models hash recursively (due to supporting namespaces) and return an array with the found models
       def load_models(hash, namespaces = [])
         models = []
+        
         # first handle all normal models
         if models_hash = hash["models"]
           models_hash.each_pair do |model_name, model_properties|
