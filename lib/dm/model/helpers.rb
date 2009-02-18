@@ -62,13 +62,6 @@ module DM
         assign_in_template { "#{form_reference}.fields_for {|fields| render :partial => '#{prefix}form_fields', :locals => {:#{form_reference} => fields} }"  }
       end
 
-      # def m_r_link_to(action, text)
-      #   case action
-      #   when
-      #     
-      #   end
-      # end
-
       def link_to(action, options = {}) 
         type = options[:type] || "path"
         template = options[:template] || "default"
@@ -85,11 +78,46 @@ module DM
           end
         end
       end
+      
+      def make_resourceful_link_to(action, options = {}) 
+        type = options[:type] || "path"
+        template = options[:template] || "default"
+
+        singular = "nested_object"
+        plural = "nested_objects"
+        instance = template.to_sym == :partial ? "(#{singular_name})" : ""  
     
+        assign_in_template do
+          %{content_tag :div, link_to( translate_for("#{singular_name}.#{template}.link_to_#{action}"), } +
+          case action 
+          when :new      : "new_#{singular}_#{type}"
+          when :edit     : "edit_#{singular}_#{type}#{instance}"
+          when :index    : "#{plural}_#{type}"
+          when :show     : "#{singular}_#{type}#{instance}"
+          when :destroy  : "#{singular}_#{type}#{instance}, :confirm => translate_for('#{singular_name}.#{template}.confirm_destroy_message'), :method => :delete"
+          end + %{ ), :class => "link_to_#{action}"}
+        end
+      end
+    
+			def will_paginate(options = {})
+				assign_in_template{ "will_paginate @#{plural_name}#{options_to_template(options)}" } if self.options[:use_pagination]
+			end
+			
+			# Only support hashes with string options
+			def options_to_template(*args)
+				options = args.extract_options!
+				prefix = args.shift || ""
+				options.empty? ? "" : prefix + options.to_a.collect { |pair| ":#{pair.first.to_s} => #{pair.second.to_s}" }.join(",")
+			end
     
       # translations
+      # def page_title(action = "default")
+      #   assign_in_template{ "content_tag :h1, @page_title = translate_for('#{singular_name}.#{action}.title').humanize" }
+      # end
+      
+      # translations
       def page_title(action = "default")
-        assign_in_template{ "@page_title = translate_for('#{singular_name}.#{action}.title')" }
+        assign_in_template{ "title_for(:#{singular_name}, :#{action})" }
       end
     
       def save_form_button

@@ -51,6 +51,9 @@ module DM
           end
         end
 
+        # First is checked what the default settings is see #template_settings
+        # If the default is to include the file type, the next step is to check whether the command line tells us to exclude the file
+        # If the default is to exclude the file type, the next step is to check whether the command line tells us to include the file
         def template_should_be_generated?(type)
           default = !(template_settings[type] && template_settings[type][:exclude_by_default])
 
@@ -89,35 +92,33 @@ module DM
                   :controller_file_name,
                   :file_name,
                   :model_hash,
+                  :options,
                   :namespaces,
                   :namespace_symbols,
                   :plural_name,
                   :singular_name,
-                  :table_name,
                   :files_to_include,
                   :files_to_exclude
 
       # model_name is assumed to be singular since it defines
       # the models (which are singular)
-      def initialize(model_name, model_hash, options = {}) #nodoc
-         @plural_name = model_name.pluralize
+      def initialize(name, property_hash, runtime_options = {}) #nodoc
+         @plural_name = name.pluralize
          @singular_name = plural_name.singularize
          @file_name = singular_name.underscore
         
-         @files_to_include = options[:include] || []
-         @files_to_exclude = options[:only] || []
+         @model_hash = HashWithIndifferentAccess.new(property_hash).symbolize_keys!
 
-         @model_hash = HashWithIndifferentAccess.new(model_hash).symbolize_keys!
+         raise "Model #{singular_name} should have attributes or associations can be left empty in #{yaml_file}" unless model_hash
 
-         raise "Model #{model_name} should have attributes or associations can be left empty in #{yaml_file}" unless model_hash
-
-         @namespaces = options[:namespaces] || []
+         @namespaces = runtime_options[:namespaces] || []
+         
          @namespace_symbols = @namespaces.map {|x| ":#{x}"}
          @controller_class_nesting_depth = @namespaces.length
 
          #Inflect
          @class_name = singular_name.classify
-         @controller_file_name = @table_name = model_name.pluralize
+         @controller_file_name = plural_name
          @class_path = []
          @controller_file_path = @namespaces
 
@@ -125,6 +126,10 @@ module DM
 
          @controller_class_name = ( (@namespaces.empty? ? "" : controller_class_path + "/" ) + plural_name).camelize
 
+         @options = model_hash[:options] || {}
+         @files_to_include = options[:include] || []
+         @files_to_exclude = options[:only] || []
+         
          @attributes = (model_hash[:attributes] || []).collect { |attribute| DM::ExtendedGeneratedAttribute.new( *extract_name_type_and_options(attribute) ) }
          @associations = (model_hash[:associations] || []).collect { |association| DM::Association.new( *extract_name_type_and_options(association) ) }
       end
@@ -171,7 +176,7 @@ module DM
       end
       
       def migration_template(template, path, options = {})
-        if template_should_be_generated?("migration")        
+        if template_should_be_generated?("migrations")        
           options[:assigns]             ||= { :model => self, :migration_name => "Create#{plural_name.camelize}" }
           options[:migration_file_name] ||= "create_#{plural_name}"
                                 

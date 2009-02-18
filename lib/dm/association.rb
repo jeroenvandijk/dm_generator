@@ -39,7 +39,7 @@ module DM
     end
     
     def is_parent_relation?       
-      @child ||= %(belongs_to has_and_belongs_to_many).include?(type.to_s)
+      @child ||= %(belongs_to has_and_belongs_to_many).include?(type.to_s) || (type.to_s == "has_many" && options[:through])
     end
             
     # implement comparison operator so we can sort
