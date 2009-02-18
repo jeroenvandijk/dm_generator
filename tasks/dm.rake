@@ -2,7 +2,7 @@ require "yaml" # For exporting and importing of the datamodel\
 require 'find' # For finding namespaces
 require File.dirname(__FILE__) + '/../lib/xmi_reader'
 
-We want the export YAML file to be sort on its keys, so it is easier to find stuff
+# We want the export YAML file to be sort on its keys, so it is easier to find stuff
 class Hash
   # Replacing the to_yaml function so it'll serialize hashes sorted (by their keys)
   #
