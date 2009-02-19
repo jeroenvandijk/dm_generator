@@ -27,7 +27,7 @@ module DM
       attr_accessor :format_mapping, :file
 
       def init_format_mapping(file)
-        @format_mapping = HashWithIndifferentAccess.new(YAML::load_file(file)).symbolize_keys!
+        @format_mapping = HashWithIndifferentAccess.new( YAML::load_file(file) ).symbolize_keys!
         @file = file
 
         validate_mapping
@@ -45,10 +45,10 @@ module DM
 
     end
     
-    attr_reader :format, :options, :templates, :model
+    attr_reader :format, :options, :templates, :model, :association_name
     
     delegate :assign_in_template, :block_in_template, :to => :model
-    
+
     def initialize(name, format, options = {})
       @name, @format, @options = name, format, options
       
@@ -60,7 +60,16 @@ module DM
       @templates = templates.map(&:to_s) - options[:except].map(&:to_s) if options[:except]
       
       
-      @model = options[:model] || nil
+     
+      
+
+      @model = options[:model]
+
+      raise "Model should be defined for '#{name}:#{format}'" unless model
+
+      @association_name = options[:association_name]  # Now we can use attributes of other models as our attributes
+      
+
     end
     
     def default
@@ -84,7 +93,15 @@ module DM
   
     def display_name(template)
       # if native?
+      if association_name.nil?
         assign_in_template{ "#{model.class_name}.human_attribute_name('#{name}')" }
+        
+      else
+        association_class_name = association_name.singularize.classify
+        
+        assign_in_template{ "#{association_class_name}.human_name + #{association_class_name}.human_attribute_name('#{name}')" }
+        
+      end
       # else
       #   display = mapping(:display_name, template)
       #   
@@ -93,11 +110,15 @@ module DM
     end
   
     # display returns the value of the attribute in the way it is defined in the format mapping file
-    # Expects the first argument to be the name of the template variable, e.g. @user or user
-    # Second argument (optional) is the symbol for the template in which we want the attribute to display
-    # Arbitrary parsing can be done in through the options hash, the {{key}} will be replaced with the value
+    # The first argument is the symbol for the template in which we want the attribute to display
+    # Arbitrary parsing can be done through the options hash, the {{key}} in the format mapping will 
+    # be replaced with the key itself
     def display(template, options = {})
-      instance = (template == :partial ? '' : '@') + model.singular_name
+
+      scope = association_name.nil? ? "" : ".#{association_name}"      
+      instance = (template == :partial ? '' : '@') + model.singular_name + scope
+
+
 
       assign_in_template do
         if native?

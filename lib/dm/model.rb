@@ -76,6 +76,8 @@ module DM
                   :yaml_file,
                   :collection_associations,
               :to => :parent
+              
+      delegate    :find_attribute_type_of_model, :to => :reader
     
       def parent
         self.class
@@ -96,6 +98,7 @@ module DM
                   :namespaces,
                   :namespace_symbols,
                   :plural_name,
+                  :reader,
                   :singular_name,
                   :files_to_include,
                   :files_to_exclude
@@ -112,6 +115,7 @@ module DM
          raise "Model #{singular_name} should have attributes or associations can be left empty in #{yaml_file}" unless model_hash
 
          @namespaces = runtime_options[:namespaces] || []
+         @reader = runtime_options[:reader]
          
          @namespace_symbols = @namespaces.map {|x| ":#{x}"}
          @controller_class_nesting_depth = @namespaces.length
@@ -206,6 +210,10 @@ module DM
         "\t"
       end
 
+      def has_association?(name)
+        associations.inject(false) { |result, association| result || association.name.singularize == name.to_s }
+      end
+
       def has_attribute?(name)
         attributes.inject(false) { |result, attribute| result || attribute.name == name.to_s }
       end
@@ -215,12 +223,60 @@ module DM
         template_name.to_s.gsub('_', '')
       end
 
+
+      # This return an attributes
       def attributes_for(_template)
-        template = format_template_name(_template)
+        # return attributes
+
+        template = _template.to_s
         @attributes_for ||= {}
-        @attributes_for[template.to_sym] ||= attributes.reject{|x| not x.templates.include? template }
+        
+        unless @attributes_for[template]
+          if options[:attributes_for].blank? || options[:attributes_for][template].blank?
+            @attributes_for[template] = attributes
+
+          else
+            # raise singular_name
+            @attributes_for[template] = options[:attributes_for][template].collect do |attribute_name_or_hash|
+
+              if attribute_name_or_hash.is_a?(String)
+
+                attributes.find { |x| x.name == attribute_name_or_hash }
+                
+              elsif attribute_name_or_hash.is_a?(Hash)
+                
+                association_name, attribute_name = attribute_name_or_hash.to_a.flatten
+                
+                raise "The model '#{singular_name}' does not have an '#{association_name}' and can therefore not be used as attribute for template '#{template}'" unless has_association?(association_name) 
+                                
+                attribute_name, type = attribute_name.to_a.flatten if attribute_name.is_a?(Hash)
+
+                type ||= find_attribute_type_of_model(association_name, attribute_name)
+
+                raise "No type is defined for model '#{singular_name}' association attribute '#{association_name}' '#{attribute_name.to_s}' for template '#{template}'" unless type
+                
+                ExtendedGeneratedAttribute.new(attribute_name, type, :model => self, :association_name => association_name )
+                
+              end
+            end
+          end
+        end
+        # raise @attributes_for[template].reject{|x| x == nil }.map(&:name).inspect if singular_name == "banner"
+        @attributes_for[template]
+        # 
+        # # See if the attributes are included in the options of this model
+        # 
+        # 
+        # # If it is an attribute of another model
+        # 
+        # 
+        # 
+        # template = format_template_name(_template)
+        # @attributes_for ||= {}
+        # @attributes_for[template.to_sym] ||= attributes.reject{|x| not x.templates.include? template }
       end
 
+      # TODO read from options
       def associations_for(_template)
         template = format_template_name(_template)
         @associations_for ||= {}
