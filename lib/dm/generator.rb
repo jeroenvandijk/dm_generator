@@ -10,7 +10,7 @@ module DM
 	  def initialize(runtime_args, runtime_options = {})
 			super
       DM::Model::Base.file_instructions = options.reject {|key, _| ![:files_to_ignore, :files_to_include].include?(key) }
-			DM::ExtendedGeneratedAttribute.init_format_mapping(template_path("format_mapping.yml", template_dir))
+			DM::ExtendedGeneratedAttribute.init_formats(template_path("formats.yml", template_dir))
 
       filename = @name
       @models = DM::Reader.new(filename, options).models

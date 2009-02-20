@@ -246,17 +246,22 @@ module DM
               elsif attribute_name_or_hash.is_a?(Hash)
                 
                 association_name, attribute_name = attribute_name_or_hash.to_a.flatten
-                
-                raise "The model '#{singular_name}' does not have an '#{association_name}' and can therefore not be used as attribute for template '#{template}'" unless has_association?(association_name) 
-                                
                 attribute_name, type = attribute_name.to_a.flatten if attribute_name.is_a?(Hash)
-
-                type ||= find_attribute_type_of_model(association_name, attribute_name)
-
-                raise "No type is defined for model '#{singular_name}' association attribute '#{association_name}' '#{attribute_name.to_s}' for template '#{template}'" unless type
                 
-                ExtendedGeneratedAttribute.new(attribute_name, type, :model => self, :association_name => association_name )
+                if association_name == "virtual"
+                  scope, attribute_name, type = [attribute_name, type.to_a].flatten if type.is_a?(Hash)
+                  ExtendedGeneratedAttribute.new(attribute_name, type, :model => self, :scope => scope)
+
+                else
                 
+                  raise "The model '#{singular_name}' does not have an '#{association_name}' and can therefore not be used as attribute for template '#{template}'" unless has_association?(association_name) 
+
+                  type ||= find_attribute_type_of_model(association_name, attribute_name)
+
+                  raise "No type is defined for model '#{singular_name}' association attribute '#{association_name}' '#{attribute_name.to_s}' for template '#{template}'" unless type
+                
+                  ExtendedGeneratedAttribute.new(attribute_name, type, :model => self, :association_name => association_name )
+                end
               end
             end
           end
