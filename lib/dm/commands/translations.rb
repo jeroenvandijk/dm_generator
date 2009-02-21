@@ -1,3 +1,5 @@
+require File.dirname(__FILE__) + '/../../yaml_sort_extension'
+
 module DM #:nodoc:
   module Generator #:nodoc:
     module Commands #:nodoc:
@@ -23,7 +25,7 @@ module DM #:nodoc:
       
       module List
         def translate(models, relative_path, locale = "en")
-          logger.update (relative_path)
+          logger.update(relative_path)
         end
       end
       
@@ -54,7 +56,7 @@ module DM #:nodoc:
           attribute_translations = {}
 
           models.each do |model|
-            model_translations[ model.singular_name ] = model.singular_name
+            model_translations[ model.singular_name ] = { "one" => model.singular_name, "other" => model.plural_name }
             attribute_translations[model.singular_name] = {}
             model.attributes.each { |attribute| attribute_translations[model.singular_name][attribute.name] = attribute.name }
           end

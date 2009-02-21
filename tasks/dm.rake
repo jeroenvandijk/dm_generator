@@ -1,22 +1,8 @@
 require "yaml" # For exporting and importing of the datamodel\
 require 'find' # For finding namespaces
 require File.dirname(__FILE__) + '/../lib/xmi_reader'
+require File.dirname(__FILE__) + '/../lib/yaml_sort_extension'
 
-# We want the export YAML file to be sort on its keys, so it is easier to find stuff
-class Hash
-  # Replacing the to_yaml function so it'll serialize hashes sorted (by their keys)
-  #
-  # Original function is in /usr/lib/ruby/1.8/yaml/rubytypes.rb
-  def to_yaml( opts = {} )
-    YAML::quick_emit( object_id, opts ) do |out|
-      out.map( taguri, to_yaml_style ) do |map|
-        sort.each do |k, v|   # <-- here's my addition (the 'sort')
-          map.add( k, v )
-        end
-      end
-    end
-  end
-end
 
 
 namespace :dm do  
@@ -27,9 +13,18 @@ namespace :dm do
     succes = system "script/generate dm #{args.model_file} --template_dir=make_resourceful_ideal --force" 
     
     if succes
-      Rake::Task["db:migrate"].invoke
-      Rake::Task["db:fixtures:load"].invoke
-      system "script/server 3000"
+      
+      require 'rails_generator/simple_logger'
+      logger = Rails::Generator::SimpleLogger.new(STDOUT)
+      
+      logger.run("db:empty") do
+         Rake::Task["db:drop"].invoke
+         Rake::Task["db:create"].invoke
+      end
+      logger.run("db:migrate") { Rake::Task["db:migrate"].invoke }
+      logger.run("db:fixtures:load") { Rake::Task["db:fixtures:load"].invoke }
+        
+      logger.run("script/server") { system "script/server 3000" }
     end
 
   end
