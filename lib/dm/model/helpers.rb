@@ -22,6 +22,9 @@ module DM
       def define_model;       "class #{class_name} < ActiveRecord::Base"; end
       def make_resourceful;   "make_resourceful do\n#{indent * 2}actions :all\n"+ (has_parents? ? "\n#{indent * 2}belongs_to #{parents.join(', ')}\n" : '') + "#{indent}end"; end
 
+      def define_accessible_attributes; "attr_accessible :#{attributes_for(:form).map(&:name).join(', :')}" end
+      def presence_validations(indention = 1); "validates_presence_of :" + attributes_for(:form).map(&:name).join(",\n#{indent(indention)} :")  end
+
 
       def form_for;           block_in_template{ "form_for #{form_for_args} do |#{form_reference}|" } ; end#+ (block_given? ? yield.to_s : "") + "\n#{block_in_template{"end"}}"; end
 

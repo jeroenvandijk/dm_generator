@@ -20,12 +20,21 @@ module DM
         @belongs_to_associations ||= associations.reject { |association| association.type.to_s != "belongs_to" }
       end
       
-      # Collection associations are use in the fixture template. It includes habtm and has_many associations
+      # Is used in the fixture template. It includes habtm and has_many associations
       # with the exception of has_many => through because this is a derived association.
-      def collection_associations
-        @collection_associations ||= associations.reject do |association| 
+      def collections
+        @collection ||= associations.reject do |association| 
           not (association.type.to_s =~ /has_many|has_and_belongs_to_many/ && association.options[:through].nil?)
         end
+      end
+      
+      def collection_names
+        collections.map(&:name)
+      end
+      
+      def add_associations(options = {})
+        indent = "\t"
+        associations.sort.map(&:to_ar).join("#{indent}\n") + "\n"
       end
 
       

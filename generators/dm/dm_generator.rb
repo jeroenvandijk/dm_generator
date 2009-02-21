@@ -3,6 +3,10 @@ require File.join(File.dirname(__FILE__), '../../lib/dm')
 class DmGenerator < DM::ExtendedNamedBase	
 	def manifest
     record do |manifest|
+      locale = "en"
+      manifest.directory( File.join('config/locales',  locale) )
+      manifest.translate(models, File.join('config/locales/', locale, "#{locale}-models.yml"), locale)
+      
       models.each do |m|
         m.manifest = manifest
         
@@ -33,8 +37,8 @@ class DmGenerator < DM::ExtendedNamedBase
         m.template( find_template_for('observer.rb'),           File.join('app/observers') )
         m.template( find_template_for('mailer.rb'),           File.join('app/mailers') )
 
-        # m.template( find_template_for('fixtures.yml'), File.join("#{test_suffix}/fixtures"), 
-        #                                               :number_of_entities => 5 )
+        m.template( find_template_for('fixtures.yml'), File.join("#{test_suffix}/fixtures"), 
+                                                      :number_of_entities => 5 )
         m.template( find_template_for('helper.rb'),           File.join('app/helpers') )
 
         # Generate views

@@ -20,9 +20,9 @@ namespaces:
               
           product:
             options:
-              only: [controller, model, view]
+              # only: [controller, model, view]
               # extends: entity
-              include: [helper, observer, mailer]
+              # include: [helper, observer, mailer]
             associations: 
               - manufacturer: belongs_to
               - categories: has_and_belongs_to_many

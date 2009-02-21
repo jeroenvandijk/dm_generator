@@ -6,7 +6,8 @@ module DM
 
     def initialize(name, type, options = {})
       @name, @type, @options = name, type, HashWithIndifferentAccess.new(options.symbolize_keys)
-      @templates = options[:include_in] || []
+      @templates = @options.delete(:include_in) || [] # Not very beautiful to define templates here
+
     end
     
     # Return the association for to define it in a model
@@ -17,6 +18,7 @@ module DM
     def options_to_ar
       option_list = []
       sorted_options = options.sort
+      
       sorted_options.each do |option, value|
         declaration = ":#{option} => #{value.is_a?(Symbol) ? ':' : ''}#{value}"
 

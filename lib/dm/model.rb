@@ -134,7 +134,7 @@ module DM
          @files_to_include = options[:include] || []
          @files_to_exclude = options[:only] || []
          
-         @attributes = (model_hash[:attributes] || []).collect { |attribute| DM::ExtendedGeneratedAttribute.new( *extract_name_type_and_options(attribute) ) }
+         @attributes = (model_hash[:attributes] || []).collect { |attribute| DM::ExtendedGeneratedAttribute.new( *extract_name_type_and_options(attribute, :model => self) ) }
          @associations = (model_hash[:associations] || []).collect { |association| DM::Association.new( *extract_name_type_and_options(association) ) }
       end
 
@@ -205,8 +205,8 @@ module DM
         end
       end
 
-      def indent
-        "\t"
+      def indent(level = 1)
+        "\t" * level
       end
 
       def has_association?(name)
@@ -235,7 +235,6 @@ module DM
             @attributes_for[template] = attributes
 
           else
-            # raise singular_name
             @attributes_for[template] = options[:attributes_for][template].collect do |attribute_name_or_hash|
 
               if attribute_name_or_hash.is_a?(String)
@@ -290,7 +289,7 @@ module DM
       private
       # Expects a hash of length 1 or 2, in which the second argument is a options hash
       # Return the name, type and options of a yaml field
-      def extract_name_type_and_options(field)
+      def extract_name_type_and_options(field, extra_options = {})
         field_options = HashWithIndifferentAccess.new
         if field.size == 2
           raise "#{field.inspect} in model #{singular_name} in #{yaml_file} is not a Hash" unless field.is_a?(Hash)
@@ -305,7 +304,7 @@ module DM
         elsif field.size != 1
           raise "wrong number of fields for field #{field.inspect} in model #{singular_name} in #{yaml_file}. Should have 1 name, type key-value pair, and an options hash is.. yup optional"
         end
-        [field.to_a, field_options.merge(:model => self) || {:model => self}].flatten
+        [field.to_a, field_options.merge(extra_options) || extra_options].flatten
       end
     end
   end
