@@ -117,32 +117,19 @@ namespace :dm do
     data_model
   end
 
-  desc "Destroy current data model (including all generated migrations, views and controllers)"
-  task :destroy do
-    empty_database
- 
-    # Destroy all existing models
-    for_all_models { |_, model| destroy model }
-  end
-
   namespace :destroy do
-    desc "Destroys the data_model that is given in the yaml file."
-    task :from_file, :yaml_file do |t, args|
-      destroy_entities args.yaml_file, "scaffold"
-      empty_database
-    end
     
     desc "Destroys the whole application"
     task :with_force do
-      empty_database
-      dirs = %w(app/models app/controllers/ app/helpers/ app/views/ db/migrate/ test spec)
-      ignore_pattern = /application_controller.rb|application.rb|application_helper.rb|layouts/
-      files_and_directories = dirs.map{ |dir| Dir.glob(dir + "*") }.flatten.reject{|f| File.basename(f) =~ ignore_pattern }
-      files_and_directories << "config/routes.rb"
-      system "rm -rf " + files_and_directories.join(" ")
-      File.open("config/routes.rb", 'w') {|f| f.write("ActionController::Routing::Routes.draw do |map|\n\n end") }
+      Rake::Task["db:drop"].invoke
       
-
+      dirs = %w(app/models app/controllers/ app/helpers/ app/views/ db/migrate/ test spec)
+      ignore_pattern = /application_controller.rb|application.rb|application_helper.rb|spec_helper.rb|layouts/
+      files_and_directories = dirs.map{ |dir| Dir.glob(dir + "*") }.flatten.reject{|f| File.basename(f) =~ ignore_pattern }
+      # files_and_directories << "config/routes.rb"
+      system "rm -rf " + files_and_directories.join(" ")
+      # File.open("config/routes.rb", 'w') {|f| f.write("ActionController::Routing::Routes.draw do |map|\n\n end") }
+      
     end
 
   end
@@ -192,7 +179,7 @@ namespace :dm do
     controller_files = Dir.glob("#{path}*.rb")
 
     if !controller_files.select {|f| f =~ /#{model_name.pluralize}_controller/}.empty?
-      # raise controller_files.inspect + " \n\n path " + path
+
       return dir.split("/") # directory structure
     else
 
