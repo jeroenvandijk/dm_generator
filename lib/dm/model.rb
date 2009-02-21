@@ -193,14 +193,13 @@ module DM
         habtm_associations.each do |habtm_assoc|
           habtm_pair = [singular_name, habtm_assoc.name.singularize].sort
           habtm_table_name = habtm_pair.map{|x| x.pluralize.underscore}.join('_')
-          migration_file_name = "create_join_table_#{habtm_table_name}.rb"
-          
+
           migration_template( template, 
                               path, 
-                              :migration_file_name => "create_#{habtm_table_name.pluralize}",
+                              :migration_file_name => "create_#{habtm_table_name}",
                               :rescue_when_already_exists => true,
                               :assigns => { :model => self,
-                                            :migration_name => "Create#{habtm_pair.to_s.camelize}",
+                                            :migration_name => "Create#{habtm_table_name.camelize}",
                                             :habtm_pair => habtm_pair,
                                             :habtm_table_name => habtm_table_name} )
         end
