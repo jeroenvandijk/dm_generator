@@ -19,7 +19,62 @@ class Hash
 end
 
 
-namespace :dm do
+namespace :dm do  
+  
+  desc "Runs script/generate with the given data model, runs migrations, loads fixtures and starts the server."
+  task :install, :model_file do |t, args|
+    
+    succes = system "script/generate dm #{args.model_file} --template_dir=make_resourceful_ideal --force" 
+    
+    if succes
+      Rake::Task["db:migrate"].invoke
+      Rake::Task["db:fixtures:load"].invoke
+      system "script/server 3000"
+    end
+
+  end
+  
+  
+  desc "routes"
+  task :routes, :yaml_file do |t, args|
+    
+    data_model = read_yaml_file(args.yaml_file)
+    make_routes(data_model)
+  end
+  
+  def make_routes(data_model, options = {}) 
+    root = options[:root] || "map"
+    indent = options[:indent].to_s + "  "
+    
+    (data_model["models"] || {}).each_pair do |resource_name, properties|      
+
+      resource_mapping = "#{indent}#{root}.resources :#{resource_name.pluralize}"
+      
+      if associations = properties["associations"]
+
+        puts "#{resource_mapping} do |#{resource_name}|\n"
+        associations.each do |association|
+          nested_resource_name, type = association.to_a.flatten
+          puts "  #{indent}#{resource_name}.resources :#{nested_resource_name.pluralize}" if type =~ /has_many|has_and_belongs_to_many/
+        end
+        puts end_block = "#{indent}end\n"
+      else
+        puts "#{resource_mapping}\n"
+      end
+      
+    end
+    
+    (data_model["namespaces"] || {}).each_pair do |namespace_name, scoped_data_model|
+      
+      puts "#{indent}#{root}.namespace :#{namespace_name} do |#{namespace_name}|\n"
+
+      make_routes(scoped_data_model, :root => namespace_name, :indent => indent)
+      
+      puts "#{indent}end\n"
+      
+    end
+  end 
+
   desc "Imports a Yaml data model."
   task :import, :yaml_file do |t, args|
     puts read_yaml_file(args.yaml_file).to_yaml
