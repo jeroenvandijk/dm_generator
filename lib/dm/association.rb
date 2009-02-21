@@ -20,10 +20,10 @@ module DM
       sorted_options = options.sort
       
       sorted_options.each do |option, value|
-        declaration = ":#{option} => #{value.is_a?(Symbol) ? ':' : ''}#{value}"
+        declaration = ":#{option} => #{value.is_a?(Symbol) || option == "through" ? ':' : ''}#{value}"
 
         if option.to_sym == :through
-          option_list = [declaration] + option_list
+          option_list = [declaration] + option_list         # Put it in front for readibility
         else
           option_list << declaration
         end
