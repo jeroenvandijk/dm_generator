@@ -111,7 +111,6 @@ class XmiReader
   
   # See if we can find hidden has_and_belongs_to_many and has_many :through associations
   def reinterpret_associations
-    # raise models.keys.inspect
     models.each_pair do |a, properties|
       
       if associations = properties["associations"]
@@ -123,8 +122,6 @@ class XmiReader
           #  or could imply a has_many through association
           if relation_of_a_with_b == "has_many" && !(options && options["through"])
             relation_of_b_with_a = find_association_type_of(b, a)
-
-            # raise  b  + find_association_type_of(b, a)  + a + models.to_yaml
 
             # If 'b => a' is also a has_many or habtm we need to change the type of 'a => b'
             if relation_of_b_with_a =~ /has_many|has_and_belongs_to_many/
