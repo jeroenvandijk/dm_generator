@@ -11,21 +11,13 @@ namespace :dm do
   task :install, :model_file do |t, args|
     
     succes = system "script/generate dm #{args.model_file} --template_dir=make_resourceful_ideal --force" 
+
+    require 'rails_generator/simple_logger'
+    logger = Rails::Generator::SimpleLogger.new(STDOUT)
     
-    if succes
-      
-      require 'rails_generator/simple_logger'
-      logger = Rails::Generator::SimpleLogger.new(STDOUT)
-      
-      logger.run("db:empty") do
-         Rake::Task["db:drop"].invoke
-         Rake::Task["db:create"].invoke
-      end
-      logger.run("db:migrate") { Rake::Task["db:migrate"].invoke }
-      logger.run("db:fixtures:load") { Rake::Task["db:fixtures:load"].invoke }
-        
-      logger.run("script/server") { system "script/server 3000" }
-    end
+    logger.run("db:create") { Rake::Task["db:create"].invoke }
+    logger.run("db:migrate") { Rake::Task["db:migrate"].invoke }
+    logger.run("db:fixtures:load") { Rake::Task["db:fixtures:load"].invoke }
 
   end
   
