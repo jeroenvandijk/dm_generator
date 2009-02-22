@@ -61,6 +61,7 @@ class DmGenerator < DM::ExtendedNamedBase
       
       # manifest.directory( File.join('config/locales',  locale) ) TODO add a line to environment.rb to include locale directory
       manifest.translate(models, File.join('config/locales/', "#{locale}-models.yml"), locale)
+      manifest.template( find_template_for('en-EN-dm-generator.yml'), "config/locales/en-EN-dm-generator.yml")
 
       manifest.routes("config/routes.rb", models_hash)
 
