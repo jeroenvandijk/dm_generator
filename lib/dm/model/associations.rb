@@ -34,7 +34,7 @@ module DM
       
       def add_associations(options = {})
         indent = "\t"
-        associations.sort.map(&:to_ar).join("#{indent}\n") + "\n"
+        associations.sort.map(&:to_ar).join("\n#{indent}") + "\n"
       end
 
       

@@ -1,6 +1,6 @@
 require "yaml"
 
-# We want the export YAML file to be sort on its keys, so it is easier to find stuff
+# We want the export YAML file to be sorted on its keys alphabetically
 # From http://snippets.dzone.com/posts/show/5811
 class Hash
   # Replacing the to_yaml function so it'll serialize hashes sorted (by their keys)

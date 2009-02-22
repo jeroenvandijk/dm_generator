@@ -6,6 +6,9 @@ class DmGenerator < DM::ExtendedNamedBase
       locale = "en"
       manifest.directory( File.join('config/locales',  locale) )
       manifest.translate(models, File.join('config/locales/', locale, "#{locale}-models.yml"), locale)
+
+      manifest.directory( File.join("config/dm") )
+      manifest.create_file(File.join("config/dm", yaml_filename), yaml_content)
       
       models.each do |m|
         m.manifest = manifest

@@ -3,6 +3,7 @@ require 'yaml'
 module DM
   class Reader 
     attr_accessor :models_hash,
+                  :original_hash,
                   :options,
                   :file
 
@@ -53,7 +54,8 @@ module DM
         raise "Models file should be of the format yml or xmi. The given file '#{file}' has an '#{extension}' extension." unless extension =~ /yml|xmi/
 
         begin
-          HashWithIndifferentAccess.new(extension == "xmi" ? XmiReader.new(file).to_h : YAML::load_file(file) ).symbolize_keys!
+          @original_hash = extension == "xmi" ? XmiReader.new(file).to_h : YAML::load_file(file) 
+          HashWithIndifferentAccess.new(original_hash).symbolize_keys!
 
         rescue StandardError => e
           raise "Models file '#{file}' could not be loaded: #{e}"

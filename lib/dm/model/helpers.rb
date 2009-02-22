@@ -20,13 +20,30 @@ module DM
       def define_mailer;      "class #{controller_class_name}Mailer < ActionMailer::Base\nend"; end
       def define_controller;  "class #{controller_class_name}Controller < ApplicationController"; end
       def define_model;       "class #{class_name} < ActiveRecord::Base"; end
-      def make_resourceful;   "make_resourceful do\n#{indent * 2}actions :all\n"+ (has_parents? ? "\n#{indent * 2}belongs_to #{parents.join(', ')}\n" : '') + "#{indent}end"; end
+      
+      def make_resourceful
+        "make_resourceful do\n#{indent * 2}actions :all\n" +
+          (has_parents? ? "\n#{indent * 2}belongs_to #{parents.join(', ')}\n" : '') + 
+          "#{indent}end"
+      end
 
-      def define_accessible_attributes; "attr_accessible :#{attributes_for(:form).map(&:name).join(', :')}" end
-      def presence_validations(indention = 1); "validates_presence_of :" + attributes_for(:form).map(&:name).join(",\n#{indent(indention)} :")  end
+      def define_accessible_attributes
+        if attributes_for(:form).any?
+          "attr_accessible :#{attributes_for(:form).map(&:name).join(', :')}"
+        end
+      end
+      
+      # When normally indented 12 is the right guess
+      def presence_validations(indention = 12)
+        if attributes_for(:form).any?
+          "validates_presence_of :" + attributes_for(:form).map(&:name).join(",\n#{indent(indention)}:")
+        end
+      end
 
 
-      def form_for;           block_in_template{ "form_for #{form_for_args} do |#{form_reference}|" } ; end#+ (block_given? ? yield.to_s : "") + "\n#{block_in_template{"end"}}"; end
+      def form_for
+        block_in_template{ "form_for #{form_for_args} do |#{form_reference}|" }
+      end
 
       def helper_prefix
         @helper_prefix ||= namespaces.empty? ? '' : namespaces.join("_") + '_'
@@ -46,7 +63,6 @@ module DM
         else
           assign_in_template { "render :partial => #{objects}, :collection => #{objects} "}
         end
-
 
        # assign_in_template { "render #{objects}" } # 2.3
       end
@@ -106,17 +122,12 @@ module DM
 				assign_in_template{ "will_paginate @#{plural_name}#{options_to_template(options)}" } if self.options[:use_pagination]
 			end
 			
-			# Only support hashes with string options
+			# Only support unnested hashes with string options
 			def options_to_template(*args)
 				options = args.extract_options!
 				prefix = args.shift || ""
 				options.empty? ? "" : prefix + options.to_a.collect { |pair| ":#{pair.first.to_s} => #{pair.second.to_s}" }.join(",")
 			end
-    
-      # translations
-      # def page_title(action = "default")
-      #   assign_in_template{ "content_tag :h1, @page_title = translate_for('#{singular_name}.#{action}.title').humanize" }
-      # end
       
       # translations
       def page_title(action = "default")

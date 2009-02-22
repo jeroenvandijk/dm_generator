@@ -9,22 +9,24 @@ module DM
       include DM::Model::Associations
 
       class << self
-        attr_reader :supported_associations, 
-                    :parent_associations,
-                    :supported_association_options,
-                    :view_templates,
-                    :yaml_file,
-                    :collection_associations
+        attr_reader :indention_style,
+                    #  :supported_associations, 
+                    # :parent_associations,
+                    # :supported_association_options,
+                    # :view_templates,
+                    :yaml_file#,
+                    # :collection_associations
 
         attr_accessor :file_instructions
 
         def add_options(options = {})
-         @supported_associations = options[:supported_associations] || []
-         @parent_associations = options[:parent_associations] || []
-         @supported_association_options = options[:supported_association_options] || []
-          @view_templates = options[:view_templates] || []
+          @indention_style = options[:indention_style] || "  "
+         # @supported_associations = options[:supported_associations] || []
+         # @parent_associations = options[:parent_associations] || []
+         # @supported_association_options = options[:supported_association_options] || []
+          # @view_templates = options[:view_templates] || []
           @yaml_file = options[:yaml_file]
-          @collection_associations = %w(has_many has_and_belongs_to_many)
+          # @collection_associations = %w(has_many has_and_belongs_to_many)
         end
 
 
@@ -69,12 +71,13 @@ module DM
       end
     
       # Delegate class 
-      delegate    :parent_associations,
-                  :supported_associations, 
-                  :supported_association_options,
-                  :view_templates,
+      delegate    :indention_style,
+                  # :parent_associations,
+                  # :supported_associations, 
+                  # :supported_association_options,
+                  # :view_templates,
                   :yaml_file,
-                  :collection_associations,
+                  # :collection_associations,
               :to => :parent
               
       delegate    :find_attribute_type_of_model, :to => :reader
@@ -205,8 +208,9 @@ module DM
         end
       end
 
+      # Indention can be set by changing indention style
       def indent(level = 1)
-        "\t" * level
+        indention_style * level
       end
 
       def has_association?(name)

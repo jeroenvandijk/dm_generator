@@ -1,19 +1,26 @@
 require 'rails_generator'
+require File.dirname(__FILE__) + '/../yaml_sort_extension'
 
 module DM
 	class ExtendedNamedBase < Rails::Generator::NamedBase
-    attr_reader :scaffold_views,
-                :models
-                
-    attr_accessor :current_model
-    
+    attr_reader :models, :yaml_filename, :yaml_content
+
 	  def initialize(runtime_args, runtime_options = {})
 			super
-      DM::Model::Base.file_instructions = options.reject {|key, _| ![:files_to_ignore, :files_to_include].include?(key) }
+      filename = @name
+
 			DM::ExtendedGeneratedAttribute.init_formats(template_path("formats.yml", template_dir))
 
-      filename = @name
-      @models = DM::Reader.new(filename, options).models
+      DM::Model::Base.file_instructions = options.reject {|key, _| ![:files_to_ignore, :files_to_include].include?(key) }
+      DM::Model::Base.add_options(:model_file => filename, :indention_style => "  " )
+
+      reader = DM::Reader.new(filename, options)      
+      @models = reader.models
+
+      # Set yaml properties so we can use it in the manifest for copying the file
+      @yaml_filename = File.basename(filename, '.*') + '.yml'
+      @yaml_content = reader.original_hash.to_yaml
+      
 		end
 			
 	  protected
