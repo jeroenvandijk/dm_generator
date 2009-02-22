@@ -22,16 +22,16 @@ namespace :dm do
   
   
   desc "Prints the routes that will be created if a datamodel is generated"
-  task :routes, :yaml_file do |t, args|
+  task :routes, :model_file do |t, args|
     
-    data_model = read_yaml_file(args.yaml_file)
+    data_model = read_model_file(args.model_file)
     make_routes(data_model)
   end
 
   desc "Creates a html menu given the data model"
-  task :menu, :yaml_file do |t, args|
+  task :menu, :model_file do |t, args|
 
-    data_model = read_yaml_file(args.yaml_file)  
+    data_model = read_model_file(args.model_file)  
     menu = build_menu(data_model)
 
     indent = "  "
@@ -84,8 +84,8 @@ namespace :dm do
   end
 
   desc "Imports a Yaml data model."
-  task :import, :yaml_file do |t, args|
-    puts read_yaml_file(args.yaml_file).to_yaml
+  task :import, :model_file do |t, args|
+    puts read_model_file(args.model_file).to_yaml
   end
 
   desc "Exports a datamodel to Yaml by inspecting ActiveRecord models present in the models directory"
@@ -95,8 +95,8 @@ namespace :dm do
   end
   
   desc "Updates all models defined in the Yaml file, does not rewrite options"
-  task :update, :yaml_file do |t, args|
-    data_model = read_yaml_file(args.yaml_file)
+  task :update, :model_file do |t, args|
+    data_model = read_model_file(args.model_file)
     
     puts update_model(data_model).to_yaml 
   end
@@ -180,17 +180,27 @@ namespace :dm do
   end
   
   def for_data_model(file)
-    data_model = read_yaml_file(file)
+    data_model = read_model_file(file)
     data_model["models"].each_pair do |model, properties|
       yield(model, properties)
     end
   end
   
-  def read_yaml_file(file)
+  def read_model_file(file)
     raise "No file given" unless file
     raise "File '#{file}' does not exist" unless File.exist?(file)
-    
-    YAML::load_file(file)
+        
+    extension = file.split('.').last
+
+    raise "Models file should be of the format yml or xmi. The given file '#{file}' has an '#{extension}' extension." unless extension =~ /yml|xmi/
+
+    begin
+      extension == "xmi" ? XmiReader.new(file).to_h : YAML::load_file(file) 
+
+    rescue StandardError => e
+      raise "Models file '#{file}' could not be loaded: #{e}"
+    end
+
   end
   
   def for_all_models 
