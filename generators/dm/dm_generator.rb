@@ -52,10 +52,12 @@ class DmGenerator < DM::ExtendedNamedBase
         end
       end
 
-      # Layout and stylesheet.
+      # Layout and stylesheet, eye candy.
       manifest.template( find_template_for('layout.html.erb'), "app/views/layouts/application.html.erb", :assigns => { :controller_class_name => "Example"})
+
       manifest.template( find_template_for('style.css'), 'public/stylesheets/scaffold.css')
       manifest.template( find_template_for('menu.css'), 'public/stylesheets/menu.css')
+      manifest.template( find_template_for('application_helper.rb'), 'app/helpers/application_helper.rb')
       
       # manifest.directory( File.join('config/locales',  locale) ) TODO add a line to environment.rb to include locale directory
       manifest.translate(models, File.join('config/locales/', "#{locale}-models.yml"), locale)
