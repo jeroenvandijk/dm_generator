@@ -4,11 +4,6 @@ class DmGenerator < DM::ExtendedNamedBase
 	def manifest
     record do |manifest|
       locale = "en"
-      manifest.directory( File.join('config/locales',  locale) )
-      manifest.translate(models, File.join('config/locales/', locale, "#{locale}-models.yml"), locale)
-
-      manifest.directory( File.join("config/dm") )
-      manifest.create_file(File.join("config/dm", yaml_filename), yaml_content)
       
       models.each do |m|
         m.manifest = manifest
@@ -30,6 +25,9 @@ class DmGenerator < DM::ExtendedNamedBase
         # manifest.directory(File.join("#{test_suffix}/models",        m.class_path))
         manifest.directory(File.join("#{test_suffix}/fixtures",    m.class_path))
 
+        m.migration_template(find_template_for('migration.rb'), 'db/migrate')
+        m.habtm_migration_template(find_template_for('habtm_migration.rb'), 'db/migrate')
+
         # # Generate controller, model and helper
         m.template( find_template_for('controller.rb'),      File.join('app/controllers') )
         # m.template( find_template_for('controller_test.rb' ), File.join('test/functional') )
@@ -48,14 +46,16 @@ class DmGenerator < DM::ExtendedNamedBase
         %w(index show new edit _partial _form _form_fields).each do |action|
           m.template( find_template_for("view_#{action}"), File.join('app', 'views', m.controller_class_path, m.plural_name) )
         end
-
-        m.migration_template(find_template_for('migration.rb'), 'db/migrate')
-        m.habtm_migration_template(find_template_for('habtm_migration.rb'), 'db/migrate')
-
-      # Generate routes
-      # TODO routes should be generate at once given all resources. This saves many unnecessary regular expression, or not?
-      # Do something with models here!      
       end
+      
+      # manifest.directory( File.join('config/locales',  locale) ) TODO add a line to environment.rb to include locale directory
+      manifest.translate(models, File.join('config/locales/', "#{locale}-models.yml"), locale)
+
+      manifest.routes("config/routes.rb", models_hash)
+
+      # Copy the data model file into the config directory
+      manifest.directory("config/dm")
+      manifest.create_file(File.join("config/dm", yaml_filename), yaml_content)      
     end
   end
 end

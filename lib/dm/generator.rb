@@ -3,7 +3,7 @@ require File.dirname(__FILE__) + '/../yaml_sort_extension'
 
 module DM
 	class ExtendedNamedBase < Rails::Generator::NamedBase
-    attr_reader :models, :yaml_filename, :yaml_content
+    attr_reader :models, :models_hash, :yaml_filename, :yaml_content
 
 	  def initialize(runtime_args, runtime_options = {})
 			super
@@ -16,6 +16,7 @@ module DM
 
       reader = DM::Reader.new(filename, options)      
       @models = reader.models
+      @models_hash = reader.models_hash
 
       # Set yaml properties so we can use it in the manifest for copying the file
       @yaml_filename = File.basename(filename, '.*') + '.yml'

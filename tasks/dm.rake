@@ -9,13 +9,14 @@ namespace :dm do
   
   desc "Runs script/generate with the given data model, runs migrations, loads fixtures and starts the server."
   task :install, :model_file do |t, args|
-    
-    succes = system "script/generate dm #{args.model_file} --template_dir=make_resourceful_ideal --force" 
 
     require 'rails_generator/simple_logger'
     logger = Rails::Generator::SimpleLogger.new(STDOUT)
-    
+
     logger.run("db:create") { Rake::Task["db:create"].invoke }
+    
+    succes = system "script/generate dm #{args.model_file} --template_dir=make_resourceful_ideal --force"     
+
     logger.run("db:migrate") { Rake::Task["db:migrate"].invoke }
     logger.run("db:fixtures:load") { Rake::Task["db:fixtures:load"].invoke }
 
