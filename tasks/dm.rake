@@ -3,11 +3,8 @@ require 'find' # For finding namespaces
 require File.dirname(__FILE__) + '/../lib/xmi_reader'
 require File.dirname(__FILE__) + '/../lib/yaml_sort_extension'
 
-
-
 namespace :dm do  
-  
-  desc "Runs script/generate with the given data model, runs migrations, loads fixtures and starts the server."
+  desc "Creates the database, runs script/generate with the given data model, runs migrations, loads fixtures."
   task :install, :model_file do |t, args|
 
     require 'rails_generator/simple_logger'
@@ -15,21 +12,104 @@ namespace :dm do
 
     logger.run("db:create") { Rake::Task["db:create"].invoke }
     
-    succes = system "script/generate dm #{args.model_file} --template_dir=make_resourceful_ideal --force"     
+    system "script/generate dm #{args.model_file} --force"     
 
+    logger.run("dm:menu") { Rake::Task["dm:menu"].invoke(args.model_file) }
     logger.run("db:migrate") { Rake::Task["db:migrate"].invoke }
     logger.run("db:fixtures:load") { Rake::Task["db:fixtures:load"].invoke }
 
   end
   
   
-  desc "routes"
+  desc "Prints the routes that will be created if a datamodel is generated"
   task :routes, :yaml_file do |t, args|
     
     data_model = read_yaml_file(args.yaml_file)
     make_routes(data_model)
   end
+
+  desc "Creates a html menu given the data model"
+  task :menu, :yaml_file do |t, args|
+
+    data_model = read_yaml_file(args.yaml_file)  
+    menu = build_menu(data_model)
+
+    indent = "  "
+    menu_string = ["<ul>"]
+    menu.each do |item|
+      prefixed_item = item.second + item.first
+      item_name = item.first
+      menu_string << %@#{indent}<li><%= link_to "#{item_name}", #{prefixed_item.pluralize}_path %>@
+      if item.size == 2
+        menu_string.last <<  "</li>"
+      else
+        menu_string << "#{indent * 2}<ul>"
+        item.last.each do |sub_item|
+          menu_string << %@#{indent * 3}<% #{item_name.classify}.all.each do |#{item_name}| %>@
+          menu_string << %@#{indent * 4}<li><%= link_to "#{sub_item} from #{item_name} " + #{item_name}.id.to_s, #{prefixed_item}_#{sub_item.pluralize}_path(#{item_name}) %></li>@
+          menu_string << %@#{indent * 3}<% end %>@
+        end
+        menu_string << "#{indent * 2}</ul>"
+        menu_string << "#{indent}</li>"
+      end
+    end
+    menu_string << "</ul>"
+    path = File.join(RAILS_ROOT, "app/views/layouts/_menu.html.erb")
+    
+    File.open(path, 'wb') {|f| f.write("<div class='menu'>\n" + menu_string.join("\n") + "\n</div>") }    
+  end
+
+  def build_menu(data_model, prefix = "")
+    menu = []
+    prefix = ""
+    (data_model["models"] || {}).each_pair do |resource_name, properties|      
+      item = [resource_name, prefix]
+
+      if associations = properties["associations"]
+        sub_items = []
+        associations.each do |association|
+          nested_resource_name, type = association.to_a.flatten
+          sub_items << nested_resource_name if type =~ /has_many|has_and_belongs_to_many/
+        end
+      end
+      item << sub_items if sub_items.any?
+      menu << item  
+    end
+    
+    (data_model["namespaces"] || {}).each_pair do |namespace_name, scoped_data_model|
+      menu += build_menu(scoped_data_model, namespace_name + "_")
+    end
+    
+    menu          
+  end
+
+  desc "Imports a Yaml data model."
+  task :import, :yaml_file do |t, args|
+    puts read_yaml_file(args.yaml_file).to_yaml
+  end
+
+  desc "Exports a datamodel to Yaml by inspecting ActiveRecord models present in the models directory"
+  task :export => :environment do
+
+    puts(update_model.to_yaml)
+  end
   
+  desc "Updates all models defined in the Yaml file, does not rewrite options"
+  task :update, :yaml_file do |t, args|
+    data_model = read_yaml_file(args.yaml_file)
+    
+    puts update_model(data_model).to_yaml 
+  end
+
+  namespace :xmi do
+    desc "Reads a xmi file and returns yaml"
+    task :to_yaml, :xmi_file do |t, args|
+      raise "No file given" unless args.xmi_file
+      puts XmiReader.new(args.xmi_file).to_yaml
+    end
+  end
+    
+    
   def make_routes(data_model, options = {}) 
     root = options[:root] || "map"
     indent = options[:indent].to_s + "  "
@@ -62,34 +142,6 @@ namespace :dm do
       
     end
   end 
-
-  desc "Imports a Yaml data model."
-  task :import, :yaml_file do |t, args|
-    puts read_yaml_file(args.yaml_file).to_yaml
-  end
-
-  desc "Exports a datamodel to Yaml by inspecting ActiveRecord models present in the models directory"
-  task :export => :environment do
-
-    puts(update_model.to_yaml)
-  end
-  
-  desc "Updates all models defined in the Yaml file, does not rewrite options"
-  task :update, :yaml_file do |t, args|
-    data_model = read_yaml_file(args.yaml_file)
-    
-    puts update_model(data_model).to_yaml 
-  end
-
-  namespace :xmi do
-    desc "Reads a xmi file and returns yaml"
-    task :to_yaml, :xmi_file do |t, args|
-      raise "No file given" unless args.xmi_file
-      puts XmiReader.new(args.xmi_file).to_yaml
-    end
-  end
-    
-    
     
     
   def update_model(data_model = {})
