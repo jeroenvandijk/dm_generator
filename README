@@ -1,13 +1,19 @@
-DryScaffold
+dm_generator
 ===========
+Warning: this plugin is very alpha, untested and so forth. Hopefully this will change soon. The demonstration below should
+give you a good impression of it's potential.
 
-Introduction goes here.
+dm_generator was created to apply good conventions, quicker prototyping and less repetition
 
+More info is currently found on http://www.jeevidee.nl
 
-Example
+Documentation will be added soon.
+
+Demonstration/Installation
 =======
 
-Example goes here.
+(Using rails 2.3+)
+rails example_shop -m http://www.jeevidee.nl/instant_rails_application.txt
 
 
 Copyright (c) 2009 [Jeroen van Dijk], released under the MIT license

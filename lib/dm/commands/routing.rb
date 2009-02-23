@@ -53,7 +53,7 @@ module DM #:nodoc:
 
             routes << "#{indent}#{root}.namespace :#{namespace_name} do |#{namespace_name}|\n"
 
-            routes += make_routes(scoped_data_model, :root => namespace_name, :indent => indent)
+            routes << build_routes(scoped_data_model, :root => namespace_name, :indent => indent)
 
             routes << "#{indent}end\n"
           end
