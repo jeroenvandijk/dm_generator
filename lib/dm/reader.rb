@@ -3,16 +3,10 @@ require 'yaml'
 module DM
   class Reader 
     attr_accessor :models_hash,
-                  :original_hash,
-                  :options,
-                  :file
+                  :original_hash
 
     def initialize(file, options = {})
       @models_hash = read_file(file)
-      @options = options.merge(:file => file)
-      
-      # Set options for Model on Class level
-      Model::Base.add_options(options)
     end
 
     def find_attribute_type_of_model(model, attribute, namespaces = [])
@@ -27,6 +21,7 @@ module DM
 
     private
     
+      # TODO is this method really needed? When I want to use associations in my views I only need to define the type. It is an exception nothing more.
       # TODO change this method because it is a bit complex due to the current structure of the yaml file
       # Try to find model and attribute in the current namespace, if not found go through namespaces
       def find_attribute_of_model_in_hash(hash, model_name, attribute_name)

@@ -28,9 +28,9 @@ module DM
       #   end
       # end
       
-      def collection_names
-        collections.map(&:name)
-      end
+      # def collection_names
+      #   collections.map(&:name)
+      # end
       
       def add_associations(options = {})
         indent = "\t"

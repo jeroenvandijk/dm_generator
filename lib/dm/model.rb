@@ -5,82 +5,17 @@ module DM
   module Model
     # Base class is responsible for extracting all information for each model
     class Base
-      include DM::Model::Helpers
-      include DM::Model::Associations
+      include Model::Helpers
+      include Model::Associations
 
       class << self
-        attr_reader :indention_style,
-                    #  :supported_associations, 
-                    # :parent_associations,
-                    # :supported_association_options,
-                    # :view_templates,
-                    :yaml_file#,
-                    # :collection_associations
-
-        attr_accessor :file_instructions
-
-        def add_options(options = {})
-          @indention_style = options[:indention_style] || "  "
-         # @supported_associations = options[:supported_associations] || []
-         # @parent_associations = options[:parent_associations] || []
-         # @supported_association_options = options[:supported_association_options] || []
-          # @view_templates = options[:view_templates] || []
-          @yaml_file = options[:yaml_file]
-          # @collection_associations = %w(has_many has_and_belongs_to_many)
-        end
-
-
-        def template_settings
-            @template_settings ||= {
-              :views            => { :abbreviation => :v },
-              :model            => { :abbreviation => :m },
-              :controller       => { :abbreviation => :c },
-              :helper           => { :abbreviation => :h, :exclude_by_default => true },
-              :fixtures         => { :abbreviation => :f },
-              :routes           => { :abbreviation => :r },
-              :migrations       => { :abbreviation => :d },
-              :controller_test  => { :abbreviation => :i },
-              :model_test       => { :abbreviation => :u },
-              :mailer           => { :abbreviation => :e, :exclude_by_default => true },
-              :observer         => { :abbreviation => :o, :exclude_by_default => true },
-              :language_file    => { :abbreviation => :l }
-            }
-        end
-
-        def template_from_mapping(abbreviation)
-          template_settings.each_pair do |template, settings|
-            return template if settings[:abbreviation] == abbreviation
-          end
-        end
-
-        # First is checked what the default settings is see #template_settings
-        # If the default is to include the file type, the next step is to check whether the command line tells us to exclude the file
-        # If the default is to exclude the file type, the next step is to check whether the command line tells us to include the file
-        def template_should_be_generated?(type)
-          default = !(template_settings[type] && template_settings[type][:exclude_by_default])
-
-          if default
-            file_instructions[:files_to_ignore].nil? ||
-            file_instructions[:files_to_ignore].inject(true) { |result, abbreviation| result && type != template_from_mapping(abbreviation) }
-          else
-            file_instructions[:files_to_include] &&
-            file_instructions[:files_to_include].inject(false) { |result, abbreviation| result || type == template_from_mapping(abbreviation) }
-          end
-
-        end
+        attr_accessor :generator, :template_settings
+        
+        delegate :indention_style, :model_filename, :template_should_be_generated?, :to => :generator
       end
-    
-      # Delegate class 
-      delegate    :indention_style,
-                  # :parent_associations,
-                  # :supported_associations, 
-                  # :supported_association_options,
-                  # :view_templates,
-                  :yaml_file,
-                  # :collection_associations,
-              :to => :parent
-              
-      delegate    :find_attribute_type_of_model, :to => :reader
+
+      delegate    :indention_style, :model_filename, :to => :parent
+      delegate    :find_attribute_type_of_model, :to => :reader     # TODO is this really used?
     
       def parent
         self.class
@@ -101,10 +36,9 @@ module DM
                   :namespaces,
                   :namespace_symbols,
                   :plural_name,
-                  :reader,
-                  :singular_name,
-                  :files_to_include,
-                  :files_to_exclude
+                  :reader,                                               # TODO Really necessary?, only used in one delegate
+                  :singular_name
+
 
       # model_name is assumed to be singular since it defines
       # the models (which are singular)
@@ -115,13 +49,13 @@ module DM
         
          @model_hash = HashWithIndifferentAccess.new(property_hash).symbolize_keys!
 
-         raise "Model #{singular_name} should have attributes or associations can be left empty in #{yaml_file}" unless model_hash
+         raise "Model #{singular_name} should have attributes or associations can be left empty in #{model_filename}" unless model_hash
 
          @namespaces = runtime_options[:namespaces] || []
-         @reader = runtime_options[:reader]
+         @reader = runtime_options[:reader]                             # TODO Really necessary?, only one delegate
          
          @namespace_symbols = @namespaces.map {|x| ":#{x}"}
-         @controller_class_nesting_depth = @namespaces.length
+         @controller_class_nesting_depth = @namespaces.length           # TODO where am I using this. Probably in tests which are not yet generatable
 
          #Inflect
          @class_name = singular_name.classify
@@ -134,8 +68,8 @@ module DM
          @controller_class_name = ( (@namespaces.empty? ? "" : controller_class_path + "/" ) + plural_name).camelize
 
          @options = model_hash[:options] || {}
-         @files_to_include = options[:include] || []
-         @files_to_exclude = options[:only] || []
+         @files_to_include = options[:include]
+         @files_to_exclude = options[:only]
          
          @attributes = (model_hash[:attributes] || []).collect { |attribute| DM::ExtendedGeneratedAttribute.new( *extract_name_type_and_options(attribute, :model => self) ) }
          @associations = (model_hash[:associations] || []).collect { |association| DM::Association.new( *extract_name_type_and_options(association) ) }
@@ -145,14 +79,11 @@ module DM
         @manifest = manifest
       end
 
-      def template_should_be_generated?(template)
-        default = Model::Base.template_should_be_generated?(template.to_sym)
+      def template_should_be_generated?(raw_template_name)
+        template = raw_template_name.slice(/view/) ? "views" : raw_template_name.clone
 
-        if default
-          not files_to_exclude.include?(template)
-        else
-          files_to_include.include?(template)
-        end            
+        self.class.template_should_be_generated?(template, :files_to_include => @files_to_include, 
+                                                           :files_to_exclude => @files_to_exclude)
       end
 
       def template(template, base_path, options = {})
@@ -214,7 +145,8 @@ module DM
       end
 
       def has_association?(name)
-        associations.inject(false) { |result, association| result || association.name.singularize == name.to_s }
+        # associations.inject(false) { |result, association| result || association.name.singularize == name.to_s }
+        associations.find { |x| x.name.singularize == name.to_s.singularize }
       end
 
       def has_attribute?(name)
@@ -226,68 +158,59 @@ module DM
         template_name.to_s.gsub('_', '')
       end
 
+			# Abstraction of form attributes
+			def attributes_for_form(_template)
+				template = _template.to_s  #TODO 
+			end
+			
 
-      # This return an attributes
-      def attributes_for(_template)
-        # return attributes
+      # Attributes come in two categories:
+      #  - simple (String)
+      #     a defined attribute
+      #     a defined association
+      #     a virtual attribute without type (defaults to string)
+      #  - complex (Hash)
+      #    a virtual attribute with a certain type
+      #    an attribute of an association with a certain type
+      #
+      def load_attributes_for(template)
 
-        template = _template.to_s
-        @attributes_for ||= {}
-        
-        unless @attributes_for[template]
-          if options[:attributes_for].blank? || options[:attributes_for][template].blank?
-            @attributes_for[template] = attributes
-
+        options[:attributes_for][template].collect do |attribute_name_or_hash|
+          
+          if attribute_name_or_hash.is_a?(String)
+            find_attribute_in_attributes_or_associations(attribute_name_or_hash) || define_attribute_from_hash(attribute_name_or_hash => :string)
+            
+          elsif attribute_name_or_hash.is_a?(Hash)
+            define_attribute_from_hash(attribute_name_or_hash)
+          
           else
-            @attributes_for[template] = options[:attributes_for][template].collect do |attribute_name_or_hash|
-
-              if attribute_name_or_hash.is_a?(String)
-
-                attributes.find { |x| x.name == attribute_name_or_hash }
-                
-              elsif attribute_name_or_hash.is_a?(Hash)
-                
-                association_name, attribute_name = attribute_name_or_hash.to_a.flatten
-                attribute_name, type = attribute_name.to_a.flatten if attribute_name.is_a?(Hash)
-                
-                if association_name == "virtual"
-                  scope, attribute_name, type = [attribute_name, type.to_a].flatten if type.is_a?(Hash)
-                  ExtendedGeneratedAttribute.new(attribute_name, type, :model => self, :scope => scope)
-
-                else
-                
-                  raise "The model '#{singular_name}' does not have an '#{association_name}' and can therefore not be used as attribute for template '#{template}'" unless has_association?(association_name) 
-
-                  type ||= find_attribute_type_of_model(association_name, attribute_name)
-
-                  raise "No type is defined for model '#{singular_name}' association attribute '#{association_name}' '#{attribute_name.to_s}' for template '#{template}'" unless type
-                
-                  ExtendedGeneratedAttribute.new(attribute_name, type, :model => self, :association_name => association_name )
-                end
-              end
-            end
+            raise "Attribute name '#{attribute_name_or_hash}' given in '#{file_name}' for model '#{singular_name}' is neither an attribute nor an association."
           end
+        
         end
-        # raise @attributes_for[template].reject{|x| x == nil }.map(&:name).inspect if singular_name == "banner"
-        @attributes_for[template]
-        # 
-        # # See if the attributes are included in the options of this model
-        # 
-        # 
-        # # If it is an attribute of another model
-        # 
-        # 
-        # 
-        # template = format_template_name(_template)
-        # @attributes_for ||= {}
-        # @attributes_for[template.to_sym] ||= attributes.reject{|x| not x.templates.include? template }
       end
-
-      # TODO read from options
-      def associations_for(_template)
-        template = format_template_name(_template)
-        @associations_for ||= {}
-        @associations_for[template.to_sym] ||= associations.reject{|x| not x.templates.include? template }
+      
+      # Find attributes or association from the definition of the model.
+      def find_attribute_in_attributes_or_associations(attribute_name)
+        attribute = attributes.find { |x| x.name == attribute_name }
+        attribute ||= ExtendedGeneratedAttribute.new(attribute_name, "association", :model => self) if has_association?(attribute_name)
+      end
+      
+      def define_attribute_from_hash(hash)
+        argument_pair = hash.to_a.flatten
+        raise "The definition of one of the attribute for #{model.singular_name} has more than two elements (#{hash.inspect})" if argument_pair.size > 2
+        
+        attribute_with_scope, type = argument_pair
+        attribute_name, *reversed_scope = attribute_with_scope.split('.').reverse
+        
+        raise hash.inspect if type == "namestring"
+        
+        ExtendedGeneratedAttribute.new(attribute_name, type, :model => self, :scope => reversed_scope.reverse)
+      end
+      
+      def attributes_for(template)
+        @attributes_for ||= HashWithIndifferentAccess.new
+        @attributes_for[template] ||= load_attributes_for(template)
       end
 
       private
@@ -296,17 +219,17 @@ module DM
       def extract_name_type_and_options(field, extra_options = {})
         field_options = HashWithIndifferentAccess.new
         if field.size == 2
-          raise "#{field.inspect} in model #{singular_name} in #{yaml_file} is not a Hash" unless field.is_a?(Hash)
+          raise "#{field.inspect} in model #{singular_name} in #{model_filename} is not a Hash" unless field.is_a?(Hash)
 
           # Extract the options by deleting it from the field
           if field[:options] && field[:options].is_a?(Hash)
             field_options = field.delete(:options)
           else
-            raise "#{field.inspect} in model #{singular_name} in #{yaml_file} has two elements, but has no options hash"  
+            raise "#{field.inspect} in model #{singular_name} in #{model_filename} has two elements, but has no options hash"  
           end
 
         elsif field.size != 1
-          raise "wrong number of fields for field #{field.inspect} in model #{singular_name} in #{yaml_file}. Should have 1 name, type key-value pair, and an options hash is.. yup optional"
+          raise "wrong number of fields for field #{field.inspect} in model #{singular_name} in #{model_filename}. Should have 1 name, type key-value pair, and an options hash is.. yup optional"
         end
         [field.to_a, field_options.merge(extra_options) || extra_options].flatten
       end

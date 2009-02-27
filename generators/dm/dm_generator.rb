@@ -53,21 +53,21 @@ class DmGenerator < DM::ExtendedNamedBase
       end
 
       # Layout and stylesheet, eye candy.
-      manifest.template( find_template_for('layout.html.erb'), "app/views/layouts/application.html.erb", :assigns => { :controller_class_name => "Example"})
+      # manifest.template( find_template_for('layout.html.erb'), "app/views/layouts/application.html.erb", :assigns => { :controller_class_name => "Example"})
 
-      manifest.template( find_template_for('style.css'), 'public/stylesheets/scaffold.css')
-      manifest.template( find_template_for('menu.css'), 'public/stylesheets/menu.css')
-      manifest.template( find_template_for('application_helper.rb'), 'app/helpers/application_helper.rb')
+      # manifest.template( find_template_for('style.css'), 'public/stylesheets/scaffold.css')
+      # manifest.template( find_template_for('menu.css'), 'public/stylesheets/menu.css')
+      # manifest.template( find_template_for('application_helper.rb'), 'app/helpers/application_helper.rb')
       
       # manifest.directory( File.join('config/locales',  locale) ) TODO add a line to environment.rb to include locale directory
       manifest.translate(models, File.join('config/locales/', "#{locale}-models.yml"), locale)
       manifest.template( find_template_for('en-EN-dm-generator.yml'), "config/locales/en-EN-dm-generator.yml")
 
-      manifest.routes("config/routes.rb", models_hash)
+      # manifest.routes("config/routes.rb", models_hash)
 
       # Copy the data model file into the config directory, so it can be editted and updated
       manifest.directory("config/dm")
-      manifest.create_file(File.join("config/dm", yaml_filename), yaml_content)      
+      manifest.create_file(File.join("config/dm", model_filename), model_file_content)    # Copy the yaml file to the dm directory  
     end
   end
 end
