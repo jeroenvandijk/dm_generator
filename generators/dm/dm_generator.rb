@@ -4,8 +4,10 @@ class DmGenerator < DM::ExtendedNamedBase
 	def manifest
     record do |manifest|
       locale = "en"
-      
+    
       models.each do |m|
+
+
         # Give the model a reference to the manifest
         m.manifest = manifest
         

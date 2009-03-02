@@ -22,9 +22,11 @@ module DM
 			ExtendedGeneratedAttribute.initialize_formats(template_path("formats.yml", template_dir))
 
       Model::Base.generator = self  
-      
+
       reader = Reader.new(filename, options)      
+
       @models = reader.models
+
       @models_hash = reader.models_hash
 
       # Set yaml properties so we can use it in the manifest for copying the file

@@ -50,10 +50,10 @@ module DM
     delegate :assign_in_template, :block_in_template, :to => :model
 
     def initialize(name, format, options = {})
-      @name, @format, @options = name, format, options
+      @name, tmp_format, @options = name, format, options
       @model = options[:model]
-            
-      super(name, extract_type(format))
+
+      super(name, extract_type(tmp_format))
 
       raise "Model should be defined for '#{name}:#{format}'" unless model  # TODO make this an extra argument?
 
@@ -123,7 +123,12 @@ module DM
     end
   
     def association?
-      type == "assocation"
+      type == "association"
+    end
+
+    # Returns true when there is no scope or when it is no association.
+    def real?
+      @scope.empty? && !association?
     end
   
     # Display the name of the attribute
@@ -142,7 +147,7 @@ module DM
       instance = (template == :partial ? '' : '@') + model.singular_name
       field = @scope.empty? ? name : "try(:#{name})"
       # Field is just the name of the attribute or a scope that is tried e.g.: current_object.user.try(:first).try(:second). Note we start trying from the second scope.
-      scope_chain = @scope.empty? ? nil : [@scope[0], (@scope.slice(1) || []).inject{|result, part| result << ".try(:#{part})" }].join(".") + "."
+      scope_chain = @scope.empty? ? nil : [@scope[0], (@scope.slice(1) || []).inject{|result, part| result << "try(:#{part})" }].compact.join(".")
       
       [instance, scope_chain, field]
     end
@@ -155,9 +160,9 @@ module DM
     # Arbitrary parsing can be done through the options hash, the {{key}} in the format mapping will 
     # be replaced with the key itself
     def display(template, options = {})
-      instance, scope_chain, field = instance_and_scope_chain_and_field(template)
+      instance, scope_chain, field_without_chain = instance_and_scope_chain_and_field(template)
       scoped_instance = [instance, scope_chain].compact.join(".") # use compact to remove nil elements
-      field = [scoped_instance, field].join(".")
+      field = [scoped_instance, field_without_chain].join(".")
       
       assign_in_template do
         if association?
@@ -165,7 +170,7 @@ module DM
           
         elsif collection?
           collection_member = @scope.last.singularize
-          "content_tag(:ul, " + "#{scoped_instance}.inject("") {|list, #{collection_member}| content_tag(:li, h(#{collection_member}.#{field}))} )"
+          "content_tag(:ul, " + "#{scoped_instance}.inject('') {|list, #{collection_member}| list << content_tag(:li, h(#{collection_member}.#{field_without_chain}))} )"
           
         elsif display = mapping("display.#{template}") || mapping("display.default")
 
@@ -231,7 +236,7 @@ module DM
       end
 
       def native?
-        native_types.has_key? format
+        native_types.has_key? format.to_sym
       end
 
       delegate :formats, :native_types, :file, :to => :parent
@@ -241,19 +246,23 @@ module DM
       end
 
       def extract_type(raw_format)
-        format, @meta_type = raw_format.to_s.split("__")
+          format_str, @meta_type = raw_format.to_s.split("__")
 
-        # Set format and make sure it is a symbol, this way we can use it later on 
-        @format = format.to_sym
-        
-        if format == "association"
-          format
-        elsif native?
-          formats[@format] && formats[@format][:native_type]
-        else
-          raise "The native_type for format '#{format}' extracted from raw format '#{raw_format}' (defined for model #{model.singular_name}) is not defined in #{file} and is also not a native rails type (#{native_types.keys.to_sentence}) "
-        end
-        
+          # Set format and make sure it is a symbol, this way we can use it later on 
+          @format = format_str.to_sym
+          
+          # Try to find the format in our definition table
+          type = formats[format] && formats[format][:native_type]
+          
+          if !type
+            if native? || format == :association
+              type = format
+            else
+              raise "The native_type for format '#{format}' extracted from raw format '#{raw_format}' (defined for model #{model.singular_name}) is not defined in #{file} and is also not a native rails type (#{native_types.keys.to_sentence}) "
+            end
+          end
+          
+          type
       end
   end
 end

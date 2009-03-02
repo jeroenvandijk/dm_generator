@@ -60,7 +60,7 @@ module DM
       # Go through the models hash recursively (due to supporting namespaces) and return an array with the found models
       def load_models(hash, namespaces = [])
         models = []
-        
+
         # first handle all normal models
         if models_hash = hash["models"]
           models_hash.each_pair do |model_name, model_properties|
@@ -74,6 +74,7 @@ module DM
             models += load_models(models_under_namespace, namespaces + [namespace])
           end
         end
+
         models
       end  
   end

@@ -70,9 +70,10 @@ module DM
          @options = model_hash[:options] || {}
          @files_to_include = options[:include]
          @files_to_exclude = options[:only]
-         
+
          @attributes = (model_hash[:attributes] || []).collect { |attribute| DM::ExtendedGeneratedAttribute.new( *extract_name_type_and_options(attribute, :model => self) ) }
          @associations = (model_hash[:associations] || []).collect { |association| DM::Association.new( *extract_name_type_and_options(association) ) }
+
       end
 
       def manifest=(manifest)
@@ -174,19 +175,22 @@ module DM
       #    an attribute of an association with a certain type
       #
       def load_attributes_for(template)
-
-        options[:attributes_for][template].collect do |attribute_name_or_hash|
+        if options[:attributes_for] && options[:attributes_for][template] 
+          options[:attributes_for][template].collect do |attribute_name_or_hash|
           
-          if attribute_name_or_hash.is_a?(String)
-            find_attribute_in_attributes_or_associations(attribute_name_or_hash) || define_attribute_from_hash(attribute_name_or_hash => :string)
+            if attribute_name_or_hash.is_a?(String)
+              find_attribute_in_attributes_or_associations(attribute_name_or_hash) || define_attribute_from_hash(attribute_name_or_hash => "string")
             
-          elsif attribute_name_or_hash.is_a?(Hash)
-            define_attribute_from_hash(attribute_name_or_hash)
+            elsif attribute_name_or_hash.is_a?(Hash)
+              define_attribute_from_hash(attribute_name_or_hash)
           
-          else
-            raise "Attribute name '#{attribute_name_or_hash}' given in '#{file_name}' for model '#{singular_name}' is neither an attribute nor an association."
-          end
+            else
+              raise "Attribute name '#{attribute_name_or_hash}' given in '#{file_name}' for model '#{singular_name}' is neither an attribute nor an association."
+            end
         
+          end
+        else
+          attributes
         end
       end
       
@@ -194,13 +198,17 @@ module DM
       def find_attribute_in_attributes_or_associations(attribute_name)
         attribute = attributes.find { |x| x.name == attribute_name }
         attribute ||= ExtendedGeneratedAttribute.new(attribute_name, "association", :model => self) if has_association?(attribute_name)
+        
+        attribute
       end
       
       def define_attribute_from_hash(hash)
         argument_pair = hash.to_a.flatten
-        raise "The definition of one of the attribute for #{model.singular_name} has more than two elements (#{hash.inspect})" if argument_pair.size > 2
+        raise "The definition of one of the attributes for '#{singular_name}' has more than two elements: (#{hash.inspect})" if argument_pair.size > 2
         
         attribute_with_scope, type = argument_pair
+        raise "The definition of one of the attributes for '#{singular_name}' is not a pair of strings: (#{hash.inspect})" unless type.is_a?(String)
+        
         attribute_name, *reversed_scope = attribute_with_scope.split('.').reverse
         
         raise hash.inspect if type == "namestring"

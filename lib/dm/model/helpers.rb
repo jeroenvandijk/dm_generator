@@ -24,6 +24,7 @@ module DM
       def make_resourceful
         "make_resourceful do\n#{indent * 2}actions :all\n" +
           (has_parents? ? "\n#{indent * 2}belongs_to #{parents.join(', ')}\n" : '') + 
+          (options[:use_pagination] ? "\n#{indent * 2}options :paginate => true\n" : '') +
           "#{indent}end"
       end
 
