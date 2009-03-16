@@ -59,13 +59,7 @@ module DM
       # - render @article  # Equivalent of render :partial => 'articles/_article', :object => @article
       # - render @articles # Equivalent of render :partial => 'articles/_article', :collection => @articles  
       def render_partial(objects)
-        if objects == objects.singularize
-          assign_in_template { "render :partial => #{objects}, :object => #{objects} "}
-        else
-          assign_in_template { "render :partial => #{objects}, :collection => #{objects} "}
-        end
-
-       # assign_in_template { "render #{objects}" } # 2.3
+       assign_in_template { "render #{objects}" }
       end
 
       def render_form
@@ -110,6 +104,7 @@ module DM
         assign_in_template do
           %{content_tag :div, link_to( translate_for("#{singular_name}.#{template}.link_to_#{action}"), } +
           case action 
+          when :back     : ":back"
           when :new      : "new_#{singular}_#{type}"
           when :edit     : "edit_#{singular}_#{type}#{instance}"
           when :index    : "#{plural}_#{type}"

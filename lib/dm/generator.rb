@@ -16,7 +16,7 @@ module DM
       super
 
       filename = @name
-      @indention_style = "  "
+      @indention_style = "\t"
 
       # The Attribute class should know of our own defined formats
 			ExtendedGeneratedAttribute.initialize_formats(template_path("formats.yml", template_dir))

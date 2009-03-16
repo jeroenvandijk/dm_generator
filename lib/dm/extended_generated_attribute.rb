@@ -74,7 +74,10 @@ module DM
     def form_field_for_association
       if association = model.has_association?(name)
         
-        if name.pluralize == name
+        if @meta_type == "many"
+          "#{model.form_reference}.label_and_select_many :#{name}"
+        
+        elsif name.pluralize == name
           "#{model.form_reference}.label_and_check_boxes :#{name}"
           
         else
@@ -163,33 +166,35 @@ module DM
       instance, scope_chain, field_without_chain = instance_and_scope_chain_and_field(template)
       scoped_instance = [instance, scope_chain].compact.join(".") # use compact to remove nil elements
       field = [scoped_instance, field_without_chain].join(".")
-      
-      assign_in_template do
-        if association?
-          "render #{field}"
-          
-        elsif collection?
-          collection_member = @scope.last.singularize
-          "content_tag(:ul, " + "#{scoped_instance}.inject('') {|list, #{collection_member}| list << content_tag(:li, h(#{collection_member}.#{field_without_chain}))} )"
-          
-        elsif display = mapping("display.#{template}") || mapping("display.default")
+    
+      no_wrapping = options.delete(:no_wrapping)
+    
+      if association?
+        display_of_field = "render #{field}"
+        
+      elsif collection?
+        collection_member = @scope.last.singularize
+        display_of_field = "content_tag(:ul, " + "#{scoped_instance}.inject('') {|list, #{collection_member}| list << content_tag(:li, h(#{collection_member}.#{field_without_chain}))} )"
+        
+      elsif display = mapping("display.#{template}") || mapping("display.default")
 
-          parse_display_template( display, options.reverse_merge(:instance => instance, :field => field) )
-        else
+        display_of_field = parse_display_template( display, options.reverse_merge(:instance => instance, :field => field) )
+      else
+      
+        puts mapping_missing_message_for(:display, template) + " Native format '#{type} is used." if !native?
+      
+        # Default case, using native format
+        display_of_field = case type
+                            when :datetime, :date : "l(#{field})"
+                            when :decimal, :float : "number_with_delimiter(#{field})"
+                            when :string, :text   : "h(#{field})"
+                            else                                 
+                              field
+                            end
         
-          puts mapping_missing_message_for(:display, template) + " Native format '#{type} is used." if !native?
-        
-          # Default case, using native format
-          case type
-          when :datetime, :date : "l #{field}"
-          when :decimal, :float : "number_with_delimiter #{field}"
-          when :string, :text   : "h #{field}"
-          else                                 
-            field
-          end
-          
-        end
       end
+      assign_in_template{ display_of_field } 
+      no_wrapping ? display_of_field : assign_in_template{ display_of_field } 
     end
 
     private
