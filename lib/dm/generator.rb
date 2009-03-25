@@ -45,6 +45,7 @@ module DM
                           :migrations       => { :abbreviation => :d },
                           :controller_tests => { :abbreviation => :i },
                           :model_tests      => { :abbreviation => :u },
+													:model_specs      => { :abbreviation => :s }, # TODO find some nice way to see model_specs and tests as the same
                           :mailers          => { :abbreviation => :e, :exclude_by_default => true }, # Should be explicitly stated in the model definition
                           :observers        => { :abbreviation => :o, :exclude_by_default => true },
                           :language_files   => { :abbreviation => :l } }
@@ -61,16 +62,17 @@ module DM
     def template_should_be_generated?(template, options = {})
       template_type = template.to_s.pluralize.to_sym
       
-      files_to_include = options[:files_to_include] || []
-      files_to_exclude = options[:files_to_exclude] || []
-      
-      if files_to_exclude.map(&:pluralize).include? template_type.to_s                         # File is defined to be excluded in the model template, return false
+			# See if the caller wants to include or exclude certain files
+      files_to_include = options[:files_to_include].try(:map, &:to_sym) || []
+      files_to_exclude = options[:files_to_exclude].try(:map, &:to_sym) || []
+
+      if files_to_exclude.map(&:pluralize).include? template_type                         # File is defined to be excluded in the model template, return false
         return false
         
       elsif @files_to_create.include?(template_type)
                       
         if template_types[template_type][:exclude_by_default]                                   # File is exclude by default so it depends on the model definition?, return value 
-          return files_to_include.map(&:pluralize).include?(template_type.to_s)
+          return files_to_include.map(&:pluralize).include?(template_type)
         else
           return true
         end
@@ -159,7 +161,7 @@ module DM
 
   			raise "Found no matching file in '#{path}' for '#{name}' template. The file should have the following format '#{name}#{extension}'." if files.empty?
 
-  			# No we know there is only one file, and that file has the defined prefix and the define extension
+  			# No we know there is only one file, and that file has the defined prefix and the defined extension
   			# We want to be able to load the templates from the rails root instead of dm_scaffold/dm_*/templates/ so we need to compensate this
   			@template_for[name] = path_to_template = File.join(%w(.. .. .. .. .. ..) << files.first)
 			 end

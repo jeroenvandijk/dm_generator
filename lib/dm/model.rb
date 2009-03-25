@@ -1,5 +1,6 @@
 require File.dirname(__FILE__) + '/model/helpers'
 require File.dirname(__FILE__) + '/model/associations'
+require File.dirname(__FILE__) + '/model/specifications'
 
 module DM
   module Model
@@ -7,14 +8,15 @@ module DM
     class Base
       include Model::Helpers
       include Model::Associations
+			include Model::Specifications
 
       class << self
-        attr_accessor :generator, :template_settings
+        attr_accessor :generator, :template_settings, :directories_created
         
         delegate :indention_style, :model_filename, :template_should_be_generated?, :to => :generator
       end
 
-      delegate    :indention_style, :model_filename, :to => :parent
+      delegate    :indention_style, :model_filename, :directories_created, :to => :parent
       delegate    :find_attribute_type_of_model, :to => :reader     # TODO is this really used?
     
       def parent
@@ -81,12 +83,28 @@ module DM
       end
 
       def template_should_be_generated?(raw_template_name)
-        template = raw_template_name.slice(/view/) ? "views" : raw_template_name.clone
+        template = raw_template_name.to_s.slice(/view/) ? "views" : raw_template_name.to_s.dup
 
         self.class.template_should_be_generated?(template, :files_to_include => @files_to_include, 
                                                            :files_to_exclude => @files_to_exclude)
       end
 
+			# Wrapper method to skip certain directories and prevent double checks plus logs
+			def directory(*args)
+				template_type = args.shift
+				self.class.directories_created ||= {}
+
+				# Only execute the directory call when we haven't done this before and the result was POSITIVE (meaning the directory has been created)
+				# If it was negative it is still possible that there the current model decides that the directory should be created
+				unless self.class.directories_created[template_type]
+					if template_should_be_generated?(template_type)
+						self.class.directories_created[template_type] = true
+						@manifest.directory(*args) 
+					end
+				end
+			end
+
+			# Wrapper method to skip certain directories and prevent double checks plus logs
       def template(template, base_path, options = {})
         target_file = File.basename(template, ".erb")
         type, extension = target_file.split('.', 2)
@@ -104,6 +122,7 @@ module DM
           filename =  case type 
                       when "controller", "helper"           : File.join(controller_class_path, "#{controller_file_name}_#{filename_suffix}")
                       when 'model'                          : singular_name
+											when /model_(spec|test)/              : "#{singular_name}_spec"
                       when 'observer',  'mailer'            : "#{singular_name}_#{filename_suffix}"
                       when 'fixtures'                       : plural_name
                       when 'view__partial'                  : "_#{singular_name}"  
@@ -115,7 +134,8 @@ module DM
       end
       
       def migration_template(template, path, options = {})
-        if template_should_be_generated?("migrations")        
+        # raise template_should_be_generated?("migrations").inspect
+				if template_should_be_generated?("migrations")        
           options[:assigns]             ||= { :model => self, :migration_name => "Create#{plural_name.camelize}" }
           options[:migration_file_name] ||= "create_#{plural_name}"
                                 

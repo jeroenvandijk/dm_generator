@@ -12,19 +12,21 @@ module DM
     
     # Return the association for to define it in a model
     def to_ar
-      "#{type} :" + (is_plural? ? name.pluralize : name.singularize) + (options.empty? ? '' : ", #{options_to_ar}" )
+      type.to_s + field_argument
     end
-    
-    def type_to_spec
-      case type
-      when "belongs_to"             : "should_belong_to"
-      when "has_many"               : "should_have_many"
-      when "has_and_belong_to_many" : "should_have_and_belong_to_many"
-      end
-    end
-    
+
+    def field_argument
+			":" + (is_plural? ? name.pluralize : name.singularize) + (options.empty? ? '' : ", #{options_to_ar}" )
+		end
+
     def to_spec
-      "#{type_to_spec} :" + (is_plural? ? name.pluralize : name.singularize) + (options.empty? ? '' : ", #{options_to_ar}" )
+			"xit { should " +
+			case type.to_sym
+      when :belongs_to              : "belong_to"
+      when :has_one                 : "have_one"
+      when :has_many                : "have_many"
+      when :has_and_belongs_to_many : "have_and_belong_to_many"
+      end + "(#{field_argument}) }" 
     end
     
     def options_to_ar
@@ -32,8 +34,8 @@ module DM
       sorted_options = options.sort
       
       sorted_options.each do |option, value|
-        declaration = ":#{option} => #{value.is_a?(Symbol) || option == "through" ? ':' : ''}#{value}"
-        
+        declaration = ":#{option} => #{value.is_a?(Symbol).inspect || %w(through destroy).include?(option.to_s) ? ':' : ''}#{value}"
+
         if option.to_sym == :through
           option_list = [declaration] + option_list         # Put it in front for readibility
         else

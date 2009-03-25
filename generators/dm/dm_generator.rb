@@ -17,34 +17,30 @@ class DmGenerator < DM::ExtendedNamedBase
         manifest.class_collisions( m.class_path, m.class_name)                                 
       
         # Controller, helper, views, and test directories.
-        manifest.directory( File.join('app/controllers',    m.controller_class_path) )
-        manifest.directory( File.join('app/models',         m.class_path) )
-        manifest.directory( File.join('app/observers',      m.class_path) )
-        manifest.directory( File.join('app/mailers',        m.class_path) )
-        manifest.directory( File.join('app/views',          m.controller_class_path, m.plural_name) )
-        manifest.directory( File.join('app/helpers',        m.controller_class_path) )
-        manifest.directory( File.join('public/stylesheets', m.class_path) )
-        
-        # 
-        
-        
-        # manifest.directory(File.join("#{test_suffix}/functional",  m.controller_class_path))
-        # manifest.directory(File.join("#{test_suffix}/models",        m.class_path))
-        manifest.directory( File.join("test/fixtures",    m.class_path))
+        m.directory(:controllers,      File.join('app/controllers',    m.controller_class_path) )
+        m.directory(:models,           File.join('app/models',         m.class_path) )
+        m.directory(:observers,        File.join('app/observers',      m.class_path) )
+        m.directory(:mailers,          File.join('app/mailers',        m.class_path) )
+        m.directory(:views,            File.join('app/views',          m.controller_class_path, m.plural_name) )
+        m.directory(:helpers,          File.join('app/helpers',        m.controller_class_path) )
+        m.directory(:stylesheets,      File.join('public/stylesheets', m.class_path) )
+        m.directory(:controller_tests, File.join("spec/controllers",   m.controller_class_path))
+        m.directory(:model_specs,      File.join("spec/models",        m.class_path))
+        m.directory(:fixtures,         File.join("spec/fixtures",      m.class_path))
 
         m.migration_template( find_template_for('migration.rb'), 'db/migrate')
         m.habtm_migration_template( find_template_for('habtm_migration.rb'), 'db/migrate')
 
         # # Generate controller, model and helper
-        # m.template( find_template_for('controller_test.rb' ), File.join('test/functional') )
+        # m.template( find_template_for('controller_spec.rb' ), File.join('spec/controllers') )
         m.template( find_template_for('controller.rb'),         File.join('app/controllers') )
 
-        # m.template( find_template_for('model_spec.rb'),       File.join('test/unit') )
+        m.template( find_template_for('model_spec.rb'),       File.join('spec/models') )
         m.template( find_template_for('model.rb'),              File.join('app/models') )
         m.template( find_template_for('observer.rb'),           File.join('app/observers') )
         m.template( find_template_for('mailer.rb'),             File.join('app/mailers') )
 
-        m.template( find_template_for('fixtures.yml'), File.join("test/fixtures"), 
+        m.template( find_template_for('fixtures.yml'), File.join("spec/fixtures"), 
                                                       :number_of_entities => 5 )
         m.template( find_template_for('helper.rb'),           File.join('app/helpers') )
 

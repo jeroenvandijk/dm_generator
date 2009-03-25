@@ -58,7 +58,7 @@ module DM
       raise "Model should be defined for '#{name}:#{format}'" unless model  # TODO make this an extra argument?
 
       @association_name = options[:association_name]  # Now we can use attributes of other models as our attributes
-      @scope = options[:scope] || []                        # Now we can use attributes of our virtual object as our attributes
+      @scope = options[:scope] || []                  # Now we can use attributes of our virtual object as our attributes
 
     end
     
@@ -173,7 +173,8 @@ module DM
         display_of_field = "render #{field}"
         
       elsif collection?
-        collection_member = @scope.last.singularize
+        collection_member = @scope.empty? ? name : @scope.last.singularize
+				puts "test"
         display_of_field = "content_tag(:ul, " + "#{scoped_instance}.inject('') {|list, #{collection_member}| list << content_tag(:li, h(#{collection_member}.#{field_without_chain}))} )"
         
       elsif display = mapping("display.#{template}") || mapping("display.default")

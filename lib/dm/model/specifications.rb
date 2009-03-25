@@ -3,10 +3,14 @@ module DM
     # Using shoulda rspec matchers
     module Specifications
       
-      def specify_mass_assignment
-        if attributes_for(:form).any?
-          "should_allow_mass_assignment_of :#{attributes_for(:form).map(&:name).join(', :')}"
-        end
+      def specify_mass_assignment(indention = 19)
+				attributes_for_mass_assignment = attributes_for(:form).map(&:name)
+				attributes_not_for_mass_assignment = attributes.map(&:name) - attributes_for_mass_assignment
+
+				declarations = []
+				declarations << "xit { should allow_mass_assignment_of(:#{attributes_for_mass_assignment.join(",\n#{indent(indention)} :")}) }" if attributes_for_mass_assignment.any?
+      	declarations << "xit { should_not allow_mass_assignment_of(:#{attributes_not_for_mass_assignment.join(",\n#{indent(indention + 2)} :")}) }" if attributes_not_for_mass_assignment.any?
+				declarations.join("\n\n\t")
       end
       
       def specify_associations(options = {})
@@ -16,9 +20,9 @@ module DM
         end
       end
       
-      def specify_presence_validations(indention = 12)
+      def specify_presence_validations(indention = 17)
         if attributes_for(:form).any?
-          "should_validate_presence_of :" + attributes_for(:form).map(&:name).join(",\n#{indent(indention)}:")
+          "xit { should validate_presence_of(:" + attributes_for(:form).map(&:name).join(",\n#{indent(indention)} :") + ") }"
         end
       end
       
