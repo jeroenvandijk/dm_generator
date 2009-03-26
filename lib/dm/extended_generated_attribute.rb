@@ -174,8 +174,8 @@ module DM
         
       elsif collection?
         collection_member = @scope.empty? ? name : @scope.last.singularize
-				puts "test"
-        display_of_field = "content_tag(:ul, " + "#{scoped_instance}.inject('') {|list, #{collection_member}| list << content_tag(:li, h(#{collection_member}.#{field_without_chain}))} )"
+
+        display_of_field = "list_of #{scoped_instance}, :#{field_without_chain}"
         
       elsif display = mapping("display.#{template}") || mapping("display.default")
 
