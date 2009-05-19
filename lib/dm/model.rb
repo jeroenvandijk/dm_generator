@@ -91,14 +91,15 @@ module DM
 
 			# Wrapper method to skip certain directories and prevent double checks plus logs
 			def directory(*args)
-				template_type = args.shift
+				template_type = args.first
+				template_path = args.second
 				self.class.directories_created ||= {}
 
 				# Only execute the directory call when we haven't done this before and the result was POSITIVE (meaning the directory has been created)
 				# If it was negative it is still possible that there the current model decides that the directory should be created
-				unless self.class.directories_created[template_type]
+				unless self.class.directories_created[template_path]
 					if template_should_be_generated?(template_type)
-						self.class.directories_created[template_type] = true
+						self.class.directories_created[template_path] = true
 						@manifest.directory(*args) 
 					end
 				end
