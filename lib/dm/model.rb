@@ -91,7 +91,7 @@ module DM
 
 			# Wrapper method to skip certain directories and prevent double checks plus logs
 			def directory(*args)
-				template_type = args.first
+				template_type = args.shift # removes the first argument as well
 				template_path = args.second
 				self.class.directories_created ||= {}
 
