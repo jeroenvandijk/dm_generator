@@ -12,7 +12,7 @@ module DM
     
     # Return the association for to define it in a model
     def to_ar
-      type.to_s + field_argument
+      [type.to_s, field_argument].join(" ")
     end
 
     def field_argument
